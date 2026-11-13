@@ -116,6 +116,7 @@ export interface Lesson {
   id: string; // e.g. "m1-l1", globally unique
   title: string;
   minutes: number;
+  summary?: string; // one plain sentence shown at the top of the lesson ("In short")
   objectives: string[];
   blocks: Block[];
   quiz: Question[]; // 5 to 10 questions, mostly scenario / decision based
@@ -127,6 +128,8 @@ export interface Assignment {
   brief: Rich;
   steps: string[];
   deliverable: string;
+  minutes?: number; // honest estimate of effort in minutes
+  starter?: string; // folder in the academy repo with a starter project, e.g. starters/shop-app
   checklist: string[]; // self-assessment criteria the learner ticks
   hint?: Rich;
 }
@@ -147,12 +150,13 @@ export interface Module {
 export interface Resource {
   id: string;
   title: string;
-  type: 'Docs' | 'Video' | 'Guide';
+  type: 'Docs' | 'Video' | 'Guide' | 'Course';
   url: string;
   minutes: number;
   free: true;
   learn: string; // what developers will learn
   modules: string[]; // module ids it supplements
+  lessons?: string[]; // lesson ids it supports, earliest first; shown as "Go deeper" on each lesson page
   verified: string; // ISO date the link was checked
 }
 

@@ -13,6 +13,10 @@ export const modules: Module[] = Object.values(modFiles)
 export const conceptMap: Record<string, Concept> = {};
 for (const f of Object.values(modFiles)) for (const c of f.concepts ?? []) conceptMap[c.id] = c;
 
+export const conceptList: Concept[] = Object.values(conceptMap).sort((a, b) => a.name.localeCompare(b.name));
+
+export const resourcesForLesson = (lessonId: string): Resource[] => resources.filter((r) => r.lessons?.includes(lessonId));
+
 export const finalAssessment: FinalAssessment | null = Object.values(finFiles)[0]?.final ?? null;
 export const resources: Resource[] = Object.values(resFiles)[0]?.resources ?? [];
 

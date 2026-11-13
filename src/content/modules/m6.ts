@@ -124,6 +124,7 @@ export const module: Module = {
       id: 'm6-l1',
       title: 'Features, existing code, frontend and APIs',
       minutes: 55,
+      summary: 'Practice on realistic jobs: add a feature, change unfamiliar code, build a screen and an API, one small slice at a time.',
       objectives: [
         'Expand a simple requirement into a prompt with acceptance criteria',
         'Understand an unfamiliar app before modifying it',
@@ -423,22 +424,22 @@ export function ordersRouter(repo: OrderRepo): Router {
               'Your manager asks you to change how refunds are calculated in a payments module you have never opened. It has about 30 files and few tests. What is the best first move?',
             options: [
               {
-                text: 'Ask Claude: "Change refunds to include shipping" and review the diff after.',
+                text: 'Ask Claude to change refunds to include shipping, then review the resulting diff afterward.',
                 correct: false,
                 why: 'It will edit before it understands the module, and you cannot judge a diff in code you do not know.',
               },
               {
-                text: 'Use plan mode: ask Claude to map how refunds are computed, list tests and risks, and propose a change plan before any edit.',
+                text: 'Use plan mode: map how refunds are computed, list tests and risks, and plan before any edit.',
                 correct: true,
                 why: 'Read only exploration builds shared understanding and a reviewable plan. Mistakes are caught before code changes.',
               },
               {
-                text: 'Rewrite the payments module cleanly, since it has few tests anyway.',
+                text: 'Rewrite the payments module cleanly first, since the missing tests mean nothing to preserve.',
                 correct: false,
                 why: 'A rewrite of money code without tests is the riskiest option. Fewer tests means you need more caution, not less.',
               },
               {
-                text: 'Ask Claude to explain the whole repository in one long message and then start editing.',
+                text: 'Ask Claude for a long summary of all 30 files, then start editing from that summary.',
                 correct: false,
                 why: 'Too broad. A targeted trace from the refund entry point is cheaper and more accurate than summarizing everything.',
               },
@@ -496,19 +497,19 @@ export function ordersRouter(repo: OrderRepo): Router {
           q: 'Best way to begin?',
           options: [
             {
-              text: 'Say "add a due date" and let Claude decide everything; you can fix it later.',
+              text: 'Paste the one line ticket and let Claude pick the date format, overdue rule and UI placement.',
               why: 'Claude fills gaps with assumptions about time zones, overdue rules and UI. You find out in review.',
             },
             {
-              text: 'Write acceptance criteria, name the files to follow, and start in plan mode so Claude can ask questions.',
+              text: 'Write acceptance criteria, name files to follow, and start in plan mode with questions.',
               why: 'Correct. Criteria plus a plan review catches wrong assumptions before any code exists.',
             },
             {
-              text: 'Tell Claude to implement the whole feature including reminders and emails in one pass.',
-              why: 'Scope was never requested. Large first prompts produce large, hard to review diffs.',
+              text: 'Ask Claude to build the due date plus reminders and email alerts in one large first pass.',
+              why: 'Reminders and emails were never requested. Large first prompts produce large, hard to review diffs.',
             },
             {
-              text: 'Ask Claude to write the tests only and decide later what the feature is.',
+              text: 'Have Claude write the tests first, then work out later what "overdue" should mean.',
               why: 'Tests need the behavior defined first. Without criteria they just encode guesses.',
             },
           ],
@@ -520,20 +521,20 @@ export function ordersRouter(repo: OrderRepo): Router {
           q: 'What do you do before committing?',
           options: [
             {
-              text: 'Commit. Claude reported green so it is green.',
+              text: 'Commit now, because Claude ran the tests and reported green, so the run is trustworthy.',
               why: 'A summary is a claim, not evidence. Output can be stale or from a narrower test run.',
             },
             {
-              text: 'Rerun `npm test` and the type check yourself and read the `/diff`.',
+              text: 'Rerun `npm test` and the type check yourself, then read the `/diff` before you commit.',
               why: 'Correct. You own the commit. Independent verification and a diff review are the minimum.',
             },
             {
-              text: 'Ask Claude to confirm again that tests pass.',
-              why: 'Asking the same source again adds no evidence.',
+              text: 'Ask Claude to run the tests again and confirm green, then commit with its summary.',
+              why: 'Asking the same source again adds no evidence. You still have not seen a run.',
             },
             {
-              text: 'Delete the tests so they cannot fail later.',
-              why: 'Removing tests destroys your safety net.',
+              text: 'Delete the tests that cover the new code so a later run cannot fail the build.',
+              why: 'Removing tests destroys your safety net and hides the next regression.',
             },
           ],
           answer: 1,
@@ -544,20 +545,20 @@ export function ordersRouter(repo: OrderRepo): Router {
           q: 'Which follow up is best?',
           options: [
             {
-              text: 'Ask it to cite file paths and line numbers for the call chain, then open two of them to confirm.',
-              why: 'Correct. Citations make the explanation checkable and you spot hallucinated structure quickly.',
+              text: 'Ask for file paths and line numbers of the call chain, then open two to check.',
+              why: 'Correct. Citations make the explanation checkable, and you spot invented structure quickly.',
             },
             {
-              text: 'Accept the summary and ask for the change directly.',
+              text: 'Accept the three file summary as accurate and ask for the rounding change next.',
               why: 'An unchecked summary may miss a second rounding site, causing inconsistent totals.',
             },
             {
-              text: 'Ask for a rewrite of all three files for clarity.',
-              why: 'A rewrite is unrelated to the requested change and raises risk.',
+              text: 'Ask Claude to rewrite all three files for clarity before changing the rounding.',
+              why: 'A rewrite is unrelated to the requested change and raises risk in code you do not know.',
             },
             {
-              text: 'Switch to a different model and trust whichever answer is longer.',
-              why: 'Length is not accuracy. Verify against the code.',
+              text: 'Switch models and trust whichever answer is longer or sounds more confident.',
+              why: 'Length and confidence are not accuracy. Verify against the code.',
             },
           ],
           answer: 0,
@@ -568,19 +569,19 @@ export function ordersRouter(repo: OrderRepo): Router {
           q: 'What is the most likely cause and fix?',
           options: [
             {
-              text: 'Tests are insufficient; add more unit tests for color values.',
-              why: 'Tests do not express your design system. The cause is a missing reference.',
+              text: 'Tests are too weak. Add unit tests that assert each color value against the design tokens.',
+              why: 'Tests check behavior, not your design system. The real cause is a missing reference.',
             },
             {
-              text: 'The prompt named no reference page or component library. Re-prompt with `src/pages/Customers.tsx` and `src/ui` as the pattern, and forbid inline styles.',
+              text: 'No reference page was named. Point it at `Customers.tsx` and `src/ui`, ban inline styles.',
               why: 'Correct. Claude copies what it is pointed at. Name the pattern and the constraint.',
             },
             {
-              text: 'Claude cannot do frontend work reliably, so write it by hand.',
-              why: 'It can, when it knows your patterns. This is a prompting gap, not a capability gap.',
+              text: 'Claude is weak at frontend work. Build the page by hand and use it only for the API.',
+              why: 'It can do frontend work when it knows your patterns. This is a prompting gap, not a capability gap.',
             },
             {
-              text: 'Accept it; styling can be cleaned up in a future sprint.',
+              text: 'Accept the styling for now and schedule a cleanup sprint once the feature has shipped.',
               why: 'Design debt compounds. A one line constraint fixes it now.',
             },
           ],
@@ -592,19 +593,19 @@ export function ordersRouter(repo: OrderRepo): Router {
           q: 'What should the prompt have included to avoid this?',
           options: [
             {
-              text: 'A request to "make it secure".',
+              text: 'A line saying "make it secure and handle bad input properly" without naming the codes.',
               why: 'Vague. It does not tell Claude the exact behavior for invalid input.',
             },
             {
-              text: 'Explicit validation at the boundary and an expected 400 with field errors, plus an unhappy path test.',
+              text: 'Say bad input must return 400 with field errors, validated at the edge, and test it.',
               why: 'Correct. Specifying the error contract and testing it makes the behavior intentional.',
             },
             {
-              text: 'A larger context window.',
-              why: 'The model had enough context; it lacked the requirement.',
+              text: 'A larger context window so the model sees every route and middleware at once.',
+              why: 'The model had enough context. It lacked the requirement.',
             },
             {
-              text: 'Nothing; 500 errors on bad input are normal.',
+              text: 'Nothing; unknown status values are rare, and a 500 is acceptable for rare input.',
               why: 'Bad client input should be a 4xx. A 500 leaks internals and hides client bugs.',
             },
           ],
@@ -616,20 +617,20 @@ export function ordersRouter(repo: OrderRepo): Router {
           q: 'What is the right level of process?',
           options: [
             {
-              text: 'Full plan mode with acceptance criteria and a written plan.',
-              why: 'Overkill for a one line change; ceremony should match risk.',
+              text: 'Start in plan mode, write acceptance criteria, and approve a plan before the edit.',
+              why: 'Overkill for a one line change. Ceremony should match risk.',
             },
             {
-              text: 'Ask directly with the file and the new text, then glance at the `/diff`.',
+              text: 'Ask directly, giving the file and the new label text, then glance at the `/diff`.',
               why: 'Correct. Low risk and easy to verify means no heavy process.',
             },
             {
-              text: 'Rewrite the component for consistency while you are in there.',
+              text: 'Fix the label, and tidy the whole component for consistency while the file is open.',
               why: 'Scope creep. It turns a trivial change into a review burden.',
             },
             {
-              text: 'Refuse to use Claude for small tasks.',
-              why: 'Small tasks are fine; just keep the prompt small and the diff small.',
+              text: 'Avoid Claude for small edits, because the setup costs more than typing it yourself.',
+              why: 'Small tasks are fine. Just keep the prompt small and the diff small.',
             },
           ],
           answer: 1,
@@ -642,6 +643,7 @@ export function ordersRouter(repo: OrderRepo): Router {
       id: 'm6-l2',
       title: 'Databases, third party APIs and debugging',
       minutes: 50,
+      summary: 'Add a database, connect an outside API, and debug by reproducing the problem first.',
       objectives: [
         'Add persistence with a migration and a repository layer safely',
         'Integrate an external API with timeouts, retries and idempotency',
@@ -853,22 +855,22 @@ Use [[m6-migration|migrations]] you review, not live schema edits, and use \`/pe
               'Support reports that some customers were charged twice. Logs show the charge call timed out and was retried. What is the right direction?',
             options: [
               {
-                text: 'Increase the timeout to 60 seconds so retries are rare.',
+                text: 'Raise the charge timeout to 60 seconds so that retries become much less frequent.',
                 correct: false,
                 why: 'It reduces frequency but does not remove the double charge risk. Slow providers still time out.',
               },
               {
-                text: 'Remove retries entirely.',
+                text: 'Remove the retry logic so a timed out charge is never sent twice, and fail the order.',
                 correct: false,
                 why: 'Transient failures then fail orders needlessly. The problem is unsafe retries, not retries.',
               },
               {
-                text: 'Reproduce with a mocked timeout in a test, then add an idempotency key per order so a retry cannot create a second charge.',
+                text: 'Reproduce a timeout in a test with a mock, then add an idempotency key per order.',
                 correct: true,
                 why: 'This addresses the cause. A test locks it in and the idempotency key makes retries safe.',
               },
               {
-                text: 'Ask Claude to refund everyone using the production API key.',
+                text: 'Ask Claude to refund every double charged customer using the production API key.',
                 correct: false,
                 why: 'Never hand production credentials to an agent for a bulk money action. Handle refunds through a reviewed, controlled process.',
               },
@@ -903,19 +905,19 @@ Use [[m6-migration|migrations]] you review, not live schema edits, and use \`/pe
           q: 'What is the best choice?',
           options: [
             {
-              text: 'Use staging; it is closer to reality.',
+              text: 'Use the staging database; its realistic data makes the tests closer to production.',
               why: 'Shared environments get polluted or corrupted by an agent running writes and schema changes.',
             },
             {
-              text: 'Run a local disposable database with seeded test data and point `.env.test` at it.',
+              text: 'Run a local disposable database with seeded data and point `.env.test` at it.',
               why: 'Correct. Reproducible, isolated, safe to wreck and rebuild.',
             },
             {
-              text: 'Use production in read only mode.',
+              text: 'Use the production database in read only mode so you only ever query real data.',
               why: 'Read only is still access to real customer data in a session you do not fully control.',
             },
             {
-              text: 'Skip the database and mock everything.',
+              text: 'Skip the database and mock every query so the tests never touch real SQL.',
               why: 'Mocks cannot prove your SQL, constraints or transactions work.',
             },
           ],
@@ -927,19 +929,19 @@ Use [[m6-migration|migrations]] you review, not live schema edits, and use \`/pe
           q: 'What do you do?',
           options: [
             {
-              text: 'Accept it since status comes from our own enum.',
-              why: 'Code gets reused and inputs change. Habitual injection risks should be fixed at the source.',
+              text: 'Accept it, since status comes from our own enum and users cannot type arbitrary values.',
+              why: 'Code gets reused and inputs change. Injection prone patterns should be fixed at the source.',
             },
             {
-              text: 'Ask for parameterized queries throughout, and add the rule to CLAUDE.md so it applies next time.',
+              text: 'Ask for parameterized queries everywhere and add that rule to CLAUDE.md for next time.',
               why: 'Correct. Fix this instance and prevent the pattern permanently.',
             },
             {
-              text: 'Wrap the string in a regex check and keep the query.',
+              text: 'Keep the concatenation and add a regex that rejects quotes before the query runs.',
               why: 'Ad hoc escaping is fragile. Parameterization is the reliable tool.',
             },
             {
-              text: 'Ignore it until a security review.',
+              text: 'Leave it for now and flag it in the next scheduled security review of the repo.',
               why: 'Cheapest to fix now, before more code copies the pattern.',
             },
           ],
@@ -951,19 +953,19 @@ Use [[m6-migration|migrations]] you review, not live schema edits, and use \`/pe
           q: 'What is the likely problem and fix?',
           options: [
             {
-              text: 'The API changed or Claude is guessing from memory. Provide the current provider docs and require it to follow them.',
+              text: 'Claude is guessing from memory or the API changed. Give it the current docs to follow.',
               why: 'Correct. Ground integrations in the real documentation.',
             },
             {
-              text: 'Nothing; models always know every API perfectly.',
-              why: 'APIs change and details get misremembered.',
+              text: 'Treat it as correct, since models recall public APIs accurately, and fix failures later.',
+              why: 'APIs change and details get misremembered. Unknown endpoints are a warning sign.',
             },
             {
-              text: 'Lower the timeout and try again.',
-              why: 'Unrelated to the wrong endpoint.',
+              text: 'Raise the request timeout and retry the call, since the endpoint may just be slow.',
+              why: 'A timeout has nothing to do with a wrong endpoint name or header.',
             },
             {
-              text: 'Test directly against the live production API to find out.',
+              text: 'Call the live production API with a real key to find out which endpoint works.',
               why: 'Probing production with real keys is unsafe and can create real charges.',
             },
           ],
@@ -975,20 +977,20 @@ Use [[m6-migration|migrations]] you review, not live schema edits, and use \`/pe
           q: 'Which fix addresses the cause?',
           options: [
             {
-              text: 'Ask the provider to stop retrying.',
-              why: 'Retries are a standard delivery guarantee. You cannot disable them.',
+              text: 'Ask the provider to turn off webhook retries so each event arrives only one time.',
+              why: 'Retries are a standard delivery guarantee. You cannot rely on turning them off.',
             },
             {
-              text: 'Store processed event ids and ignore repeats, with a test that delivers the same event twice.',
+              text: 'Store processed event ids and skip repeats, with a test that sends one event twice.',
               why: 'Correct. Idempotent handling makes duplicates harmless.',
             },
             {
-              text: 'Add a sleep before sending the email.',
-              why: 'Timing hacks do not prevent a second delivery.',
+              text: 'Add a short delay before the email step so the second delivery arrives too late.',
+              why: 'Timing hacks do not prevent a second delivery from being processed.',
             },
             {
-              text: 'Disable the email feature.',
-              why: 'Removes the symptom and the feature, not the cause.',
+              text: 'Disable the shipping email feature until the provider fixes their delivery behavior.',
+              why: 'That removes the feature, not the cause. The provider is behaving normally.',
             },
           ],
           answer: 1,
@@ -999,19 +1001,19 @@ Use [[m6-migration|migrations]] you review, not live schema edits, and use \`/pe
           q: 'Why is that a weak start, and what should change?',
           options: [
             {
-              text: 'It is fine; Claude will search everything and find it.',
+              text: 'Leave it as is, since Claude will search the whole repo, locate the cause and fix it alone.',
               why: 'Without steps or evidence it will guess, and the fix will be unverified.',
             },
             {
-              text: 'Provide a reproducible sequence, expected vs actual, and ask for a failing test before any fix.',
+              text: 'Give a reproducible sequence with expected and actual totals, and ask for a failing test.',
               why: 'Correct. A deterministic repro turns a guess into a check.',
             },
             {
-              text: 'Ask it to rewrite the cart module.',
+              text: 'Ask Claude to rewrite the cart module so any hidden bug disappears with the old code.',
               why: 'Rewriting hides the bug at best and adds new ones at worst.',
             },
             {
-              text: 'Wait until it happens in production again.',
+              text: 'Wait for it to happen again in production and capture the logs before touching code.',
               why: 'You can usually build a repro locally from the report and the code history.',
             },
           ],
@@ -1023,19 +1025,19 @@ Use [[m6-migration|migrations]] you review, not live schema edits, and use \`/pe
           q: 'What is wrong?',
           options: [
             {
-              text: 'Nothing; the test now passes.',
+              text: 'Nothing is wrong; the failing test was outdated, and the new value makes the suite green.',
               why: 'The test was right. It encoded the correct expected behavior.',
             },
             {
-              text: 'It changed the test to match the bug. Reject, and tell Claude to fix the code and never edit the test expectation.',
+              text: 'It edited the test to match the bug. Reject it and say fix the code, never the test.',
               why: 'Correct. Say this explicitly in the prompt: fix the code, do not weaken tests.',
             },
             {
-              text: 'The test framework is broken.',
-              why: 'The framework is reporting correctly; the code was wrong.',
+              text: 'The test framework mis-compared the numbers, so upgrade it and rerun the suite.',
+              why: 'The framework is reporting correctly. The code was wrong.',
             },
             {
-              text: 'You should skip testing for money logic.',
+              text: 'Money logic should not be unit tested, because rounding makes expectations unreliable.',
               why: 'Money logic needs the most testing.',
             },
           ],
@@ -1047,7 +1049,7 @@ Use [[m6-migration|migrations]] you review, not live schema edits, and use \`/pe
           q: 'Right move?',
           options: [
             {
-              text: 'Edit the old migration file to change the column.',
+              text: 'Edit the old migration so the column is nullable, since it is the same change.',
               why: 'Machines that already applied it will not re-run it, so schemas diverge.',
             },
             {
@@ -1055,12 +1057,12 @@ Use [[m6-migration|migrations]] you review, not live schema edits, and use \`/pe
               why: 'Correct. Migrations are append only history.',
             },
             {
-              text: 'Delete the table in every environment and recreate it.',
+              text: 'Drop and recreate the table in every environment, then rerun all migrations.',
               why: 'Destroys data and breaks shared environments.',
             },
             {
-              text: 'Change the column by hand in each database and not tell anyone.',
-              why: 'Undocumented manual changes are exactly what migrations exist to prevent.',
+              text: 'Alter the column by hand in each database and mention it in the team chat.',
+              why: 'Manual changes are not versioned or repeatable, so environments drift.',
             },
           ],
           answer: 1,
@@ -1073,6 +1075,7 @@ Use [[m6-migration|migrations]] you review, not live schema edits, and use \`/pe
       id: 'm6-l3',
       title: 'Refactoring, testing and building from scratch',
       minutes: 55,
+      summary: 'Refactor safely, write tests that can fail, build a whole app in slices, and know when to take back control.',
       objectives: [
         'Refactor legacy code safely behind characterization tests',
         'Write meaningful tests, not tests that mirror the implementation',
@@ -1286,22 +1289,22 @@ If a mistake happens, **/rewind** (aliases /checkpoint and /undo) restores earli
               'A 600 line pricing function has no tests, and you must add a new discount tier next week. What should you do first?',
             options: [
               {
-                text: 'Add the new discount directly inside the existing function; it is the fastest change.',
+                text: 'Add the new discount directly inside the existing function, since that is the fastest path.',
                 correct: false,
                 why: 'Adding to untested nested logic risks breaking existing tiers with no way to notice.',
               },
               {
-                text: 'Have Claude rewrite the function from the spec and compare the results by eye.',
+                text: 'Have Claude rewrite the function from the spec and compare outputs by eye on samples.',
                 correct: false,
                 why: 'The legacy code is the real spec. Eyeballing differences across many inputs does not scale.',
               },
               {
-                text: 'Write characterization tests against current behavior, refactor in small steps with tests green, then add the new tier as a separate change.',
+                text: 'Write characterization tests on current behavior, refactor in small steps, then add the tier.',
                 correct: true,
                 why: 'This gives a safety net, separates refactor from feature, and keeps each change reviewable.',
               },
               {
-                text: 'Skip tests because the function has been in production for years.',
+                text: 'Skip tests because the function has run in production for years without complaints.',
                 correct: false,
                 why: 'Long uptime does not tell you what the code does at edge inputs, and you are about to change it.',
               },
@@ -1337,20 +1340,20 @@ If a mistake happens, **/rewind** (aliases /checkpoint and /undo) restores earli
           q: 'What is wrong with this result?',
           options: [
             {
-              text: 'Nothing, passing tests prove it is safe.',
+              text: 'Nothing; green tests prove the refactor is safe, since they exercise every code path.',
               why: 'The tests were written against the new code, so they cannot reveal behavior changes.',
             },
             {
-              text: 'The tests describe the new implementation, not the old behavior. Characterization tests must be written and run on the original code first.',
+              text: 'The tests describe the new code. Write characterization tests on the original first.',
               why: 'Correct. Without a baseline from the original, a refactor can change behavior unnoticed.',
             },
             {
-              text: 'The function should have been left unrefactored forever.',
+              text: 'Untested functions should never be refactored, so the rewrite should be discarded.',
               why: 'Refactoring is fine with a proper safety net.',
             },
             {
-              text: 'Too many tests were written.',
-              why: 'Quantity is not the issue; the order and baseline are.',
+              text: 'Too many tests were generated, which makes the suite slow and hides real failures.',
+              why: 'Quantity is not the issue. The order and the baseline are.',
             },
           ],
           answer: 1,
@@ -1361,19 +1364,19 @@ If a mistake happens, **/rewind** (aliases /checkpoint and /undo) restores earli
           q: 'What do you tell Claude?',
           options: [
             {
-              text: 'Fix it silently as part of the refactor.',
+              text: 'Fix the negative total inside the refactor, since you are already in that function.',
               why: 'Behavior changes mixed into a refactor are hard to spot, and other systems may depend on the quirk.',
             },
             {
-              text: 'Record the current behavior, flag it with a comment, and handle it as a separate decision and change.',
+              text: 'Record the current behavior, flag it with a comment, and fix it separately.',
               why: 'Correct. Keep refactors behavior preserving and track fixes separately.',
             },
             {
-              text: 'Delete that test case.',
+              text: 'Delete that test case, since a negative total is clearly not a valid expectation.',
               why: 'Dropping the case hides the finding and removes coverage.',
             },
             {
-              text: 'Change the expected value to zero and move on.',
+              text: 'Set the expected value to zero so the test describes how the coupon should work.',
               why: 'That makes the test fail against legacy code, defeating its purpose.',
             },
           ],
@@ -1385,19 +1388,19 @@ If a mistake happens, **/rewind** (aliases /checkpoint and /undo) restores earli
           q: 'What is a better instruction?',
           options: [
             {
-              text: 'Agree; coverage is the best quality measure.',
+              text: 'Agree with the teammate, since full line coverage is the clearest proof of real quality.',
               why: 'Coverage shows lines executed, not behavior verified.',
             },
             {
-              text: 'List business rules, require happy, boundary and invalid cases per rule, then run quick mutations to prove the tests can fail.',
+              text: 'Test happy, boundary and invalid cases per rule, then mutate code to see tests fail.',
               why: 'Correct. This targets bugs, not numbers.',
             },
             {
-              text: 'Ask for as many tests as possible.',
+              text: 'Ask for the largest possible number of tests so every function has many assertions.',
               why: 'Volume without intent creates noise and maintenance cost.',
             },
             {
-              text: 'Mock every dependency so tests run faster.',
+              text: 'Mock every dependency so the generated tests run faster and never touch real code.',
               why: 'Over mocking makes tests assert the mocks.',
             },
           ],
@@ -1409,19 +1412,19 @@ If a mistake happens, **/rewind** (aliases /checkpoint and /undo) restores earli
           q: 'Best fix?',
           options: [
             {
-              text: 'Retry the CI job until it passes.',
+              text: 'Add automatic retries to the CI job so the midnight failure passes on a rerun.',
               why: 'Hides a real nondeterminism problem.',
             },
             {
-              text: 'Use a fixed or fake clock in tests so the result never depends on the real time.',
+              text: 'Inject a fixed or fake clock in tests so results never depend on real time.',
               why: 'Correct. Control time, randomness and external state in tests.',
             },
             {
-              text: 'Remove the expiry test.',
-              why: 'Loses coverage of a business rule.',
+              text: 'Delete the expiry test, since the coupon rule is also checked by hand in review.',
+              why: 'Loses automated coverage of a business rule.',
             },
             {
-              text: 'Run CI only during the day.',
+              text: 'Schedule CI to run only during daytime hours so the clock never crosses midnight.',
               why: 'Avoids the symptom, not the cause.',
             },
           ],
@@ -1433,19 +1436,19 @@ If a mistake happens, **/rewind** (aliases /checkpoint and /undo) restores earli
           q: 'What should you have done?',
           options: [
             {
-              text: 'Used a bigger model.',
-              why: 'Size does not solve an unreviewable scope.',
+              text: 'Use a larger model so the nine thousand lines come out with far fewer hidden mistakes in them.',
+              why: 'Model size does not solve an unreviewable scope.',
             },
             {
-              text: 'Planned in plan mode, defined must have vs later, and built in vertical slices with tests and a commit per slice.',
+              text: 'Plan in plan mode, split must have from later, and build tested slices, one commit each.',
               why: 'Correct. Small verified steps keep you in control of the result.',
             },
             {
-              text: 'Typed the prompt more politely.',
-              why: 'Tone has no effect on scope control.',
+              text: 'Rank all features in a numbered priority list inside the same single prompt.',
+              why: 'Ordering features in one prompt still produces one unreviewable build.',
             },
             {
-              text: 'Never used AI for full applications.',
+              text: 'Avoid AI for whole applications and write the auth and data layer by hand.',
               why: 'It works well for apps when the process is disciplined.',
             },
           ],
@@ -1457,19 +1460,19 @@ If a mistake happens, **/rewind** (aliases /checkpoint and /undo) restores earli
           q: 'What is the most effective recovery?',
           options: [
             {
-              text: 'Keep prompting in the same thread with louder instructions.',
+              text: 'Keep going in the same thread and repeat the instructions more strongly each time.',
               why: 'A polluted context tends to repeat the same mistakes.',
             },
             {
-              text: 'Restore to the last good state with `/rewind` or git, then start a fresh focused prompt (use `/clear`) with the failure output.',
+              text: 'Restore the last good state with `/rewind` or git, then `/clear` and restate the failure.',
               why: 'Correct. Reset code and context, then restate the problem cleanly.',
             },
             {
-              text: 'Delete the repository.',
+              text: 'Delete the repository and restart from the first prompt, since the context is lost.',
               why: 'Far too destructive when commits per slice exist.',
             },
             {
-              text: 'Disable the tests until the work is done.',
+              text: 'Comment out the failing tests until the remaining slices are finished, then restore them.',
               why: 'Removes the signal that tells you what is broken.',
             },
           ],
@@ -1481,19 +1484,19 @@ If a mistake happens, **/rewind** (aliases /checkpoint and /undo) restores earli
           q: 'What do you do?',
           options: [
             {
-              text: 'Deploy; tests are enough.',
+              text: 'Deploy now, because the passing test suite already covers the wiring and configuration.',
               why: 'Tests cover what was written, not wiring, configuration or UX.',
             },
             {
-              text: 'Run the app yourself, register, create and search notes, check auth boundaries with a second user, and review the diff and secrets handling.',
+              text: 'Run it yourself, try a second user on the notes, and review the diff and secrets.',
               why: 'Correct. A human end to end pass and a security review catch what tests missed.',
             },
             {
-              text: 'Ask Claude if it is sure.',
+              text: 'Ask Claude to double check and confirm it is certain the app is ready to deploy.',
               why: 'Self assessment is not independent verification.',
             },
             {
-              text: 'Skip the README; the code is self explanatory.',
+              text: 'Skip the README for now, since the code reads clearly and setup can be explained later.',
               why: 'Reproducible setup is part of a deliverable app.',
             },
           ],
@@ -1506,6 +1509,7 @@ If a mistake happens, **/rewind** (aliases /checkpoint and /undo) restores earli
     {
       id: 'm6-a1',
       title: 'Build a CRUD application with Claude Code',
+      minutes: 180,
       brief: `Build a small, tested CRUD application of your choice (for example "Bookmarks", "Expenses" or "Support tickets") using Claude Code, following the vertical slice process from this module.
 
 You are graded on process and result: a plan, small reviewed slices, tests, and a working app.`,
@@ -1534,29 +1538,31 @@ You are graded on process and result: a plan, small reviewed slices, tests, and 
     {
       id: 'm6-a2',
       title: 'Debug an existing buggy application',
-      brief: `Use (or create) a small Node and Express "Shop" app with a cart and orders. Seed it with the five bugs below, then use Claude Code to find and fix each one using the reproduce first loop.
+      minutes: 120,
+      starter: 'starters/shop-app',
+      brief: `Use the Shop app starter in \`starters/shop-app\` in the academy repo. It is a small dependency free Node app with a cart, orders and an HTTP API. All its tests pass today, yet users have reported five bugs.
 
-If you do not have an app, ask Claude to generate a small one with passing tests, then introduce the bugs yourself by hand so you know the truth.`,
+Your job: use Claude Code to find and fix each bug with the reproduce first loop. Work only from the symptoms in \`BUG_REPORTS.md\`. Do not tell Claude where a bug is, and do not open \`ANSWERS.md\` until you have finished or are truly stuck.`,
       steps: [
-        'Bug 1, off by one: the order list pagination skips the first item of every page after page 1 (for example uses `offset = page * size` instead of `(page - 1) * size`).',
-        'Bug 2, stale cache: a promo discount is applied to a cached subtotal, so removing an item leaves the old discount amount (as in Scenario 7).',
-        'Bug 3, unhandled input: POST /orders with a negative or non numeric quantity returns 500 with a stack trace instead of 400.',
-        'Bug 4, race condition: two simultaneous requests for the last unit in stock both succeed, because stock is read and then written without a transaction or atomic update.',
-        'Bug 5, timezone: "orders created today" uses server local time, so orders near midnight UTC show on the wrong day.',
-        'For each bug, write the report like a user would (steps, expected, actual), give Claude only that report, and require: failing test first, root cause in two sentences, minimal fix inside a stated folder, full suite green.',
-        'Record for each bug whether Claude found the real cause on the first attempt, and what hint or constraint you had to add if not.',
+        'Copy `starters/shop-app` out of the academy repo to a folder of your own, run `git init` in the copy, then run `npm test` and confirm everything passes. Make one commit of the starting state.',
+        'Open `BUG_REPORTS.md`. It has five reports written the way real users write them: steps, expected result and actual result. They describe symptoms only.',
+        'Take one report at a time. Give Claude only that report text, with no hint about the file or the cause.',
+        'Require this loop for each bug: write a failing test first, state the root cause in two sentences, make the smallest fix, then run the full suite until it is green.',
+        'Do not let Claude edit existing tests to get green. Commit once per bug, with a message that names the bug.',
+        'After each bug, record whether Claude found the real cause on the first attempt, and what hint or constraint you had to add if not.',
+        'When all five are fixed, open `ANSWERS.md` and compare your root causes with the key, not just your fixes. Note any difference in your table.',
       ],
       deliverable:
-        'The fixed repository with five regression tests (one per bug), commit per bug, and a table with columns: bug, report you gave, root cause, fix, first attempt correct (yes or no), what you added to the prompt.',
+        'The fixed repository with five regression tests (one per bug), one commit per bug, and a table with columns: bug, report you gave, root cause, fix, first attempt correct (yes or no), what you added to the prompt.',
       checklist: [
         'Every bug had a failing test before the fix and has a passing test now',
         'Root causes are stated and correct, not just symptom patches',
         'Fixes are minimal and stay inside the relevant module',
         'No test expectation was weakened to get green',
-        'The race condition is fixed with an atomic update or a transaction, and tested with concurrent calls',
+        'The race condition is fixed so the stock check and the decrement are one atomic step, and a test with two concurrent orders proves it',
         'The table honestly records Claude\'s misses and your corrections',
       ],
-      hint: 'For the race condition, a test that fires two requests with Promise.all against the same item usually reproduces it reliably. If Claude cannot reproduce a bug, say so and give it more detail rather than letting it guess.',
+      hint: 'For the race condition, a test that calls two `createOrder` calls with `Promise.all` for `HD-03` reproduces it reliably. For the timezone bug, set `TZ` to a non UTC zone when you run the tests, for example `TZ=Asia/Kolkata npm test`. If Claude cannot reproduce a bug, say so and give it more detail rather than letting it guess.',
     },
   ],
 };

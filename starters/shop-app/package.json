@@ -1,0 +1,11 @@
+{
+  "name": "shop-app-starter",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Small shop app used by the Concretio FDE Academy assignments. No dependencies, Node 18+.",
+  "scripts": {
+    "test": "node --test",
+    "start": "node src/server.js"
+  }
+}
