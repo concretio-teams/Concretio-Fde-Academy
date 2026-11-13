@@ -372,7 +372,14 @@ html, body { max-width: 100%; overflow-x: clip; }
   .row { gap: 8px; }
 }
 .playgrid { grid-template-columns: minmax(220px, 300px) minmax(0, 1fr); align-items: start; }
-@media (max-width: 860px) { .playgrid { grid-template-columns: minmax(0, 1fr); } }
+/* Playground: only the exercise list scrolls, and it stays pinned beside the exercise */
+.pglist { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow-y: auto; overscroll-behavior: contain; display: grid; gap: 14px; padding-right: 6px; scrollbar-width: thin; }
+.pgroup { display: grid; gap: 6px; }
+.pghead { position: sticky; top: 0; z-index: 1; background: var(--bg); padding: 4px 2px; font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; color: var(--muted); }
+.pgitem { margin: 0 !important; }
+.pgpanel { scroll-margin-top: 12px; }
+.pgpanel > .card.block { margin-top: 0 !important; }
+@media (max-width: 860px) { .playgrid { grid-template-columns: minmax(0, 1fr); } .pglist { position: static; max-height: 260px; } }
 .grid > * { min-width: 0; }
 /* The page column must be allowed to shrink, otherwise one wide code block or diagram widens the whole page */
 .app { grid-template-columns: 264px minmax(0, 1fr); }

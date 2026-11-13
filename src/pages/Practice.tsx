@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { allAssignments, allExercises, assignmentById, finalAssessment, lessonById, moduleById, modules, resources } from '../content';
 import { ResourceItem } from '../components/GoDeeper';
 import { ExerciseView } from '../components/Exercises';
@@ -13,10 +13,20 @@ export function PlaygroundPage({ id }: { id?: string }) {
   const p = useProgress();
   const [cat, setCat] = useState('all');
   const [sel, setSel] = useState<string | null>(id ?? null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const firstRender = useRef(true);
   useEffect(() => { if (id) { setSel(id); setCat("all"); } }, [id]);
   const list = allExercises.filter((e) => cat === 'all' || e.exercise.category === cat);
   const solved = allExercises.filter((e) => p.exercises[e.exercise.id]?.done).length;
   const cur = allExercises.find((e) => e.exercise.id === sel) ?? list[0];
+  const curId = cur?.exercise.id;
+  const groups = modules.map((m) => ({ m, items: list.filter((e) => e.module.id === m.id) })).filter((g) => g.items.length > 0);
+  // The list scrolls on its own, so after picking an exercise bring the exercise itself into view.
+  useEffect(() => {
+    if (firstRender.current) { firstRender.current = false; return; }
+    const el = panelRef.current;
+    if (el && (el.getBoundingClientRect().top < 0 || window.innerWidth <= 860)) el.scrollIntoView({ block: 'start' });
+  }, [curId]);
   return (
     <>
       <PageHead kicker="Playground" title="Hands-on, simulated practice">
@@ -29,15 +39,20 @@ export function PlaygroundPage({ id }: { id?: string }) {
       </div>
       {list.length === 0 ? <p className="muted">No exercises in this category yet.</p> : (
         <div className="grid playgrid">
-          <div className="stack" style={{ gap: 6 }}>
-            {list.map((e) => (
-              <button key={e.exercise.id} className={`opt ${cur?.exercise.id === e.exercise.id ? 'sel' : ''}`} style={{ margin: 0 }} onClick={() => setSel(e.exercise.id)}>
-                {p.exercises[e.exercise.id]?.done ? '✓ ' : ''}{e.exercise.title}
-                <div className="small muted">Module {e.module.number}</div>
-              </button>
+          <div className="pglist" aria-label="Exercises by module">
+            {groups.map((g) => (
+              <div key={g.m.id} className="pgroup">
+                <div className="pghead">Module {g.m.number}: {g.m.title}</div>
+                {g.items.map((e) => (
+                  <button key={e.exercise.id} className={`opt pgitem ${curId === e.exercise.id ? 'sel' : ''}`} onClick={() => setSel(e.exercise.id)} aria-current={curId === e.exercise.id ? 'true' : undefined}>
+                    {p.exercises[e.exercise.id]?.done ? '✓ ' : ''}{e.exercise.title}
+                    <div className="small muted">{CATS[e.exercise.category] ?? e.exercise.category}</div>
+                  </button>
+                ))}
+              </div>
             ))}
           </div>
-          <div>{cur && <ExerciseView key={cur.exercise.id} ex={cur.exercise} />}</div>
+          <div ref={panelRef} className="pgpanel">{cur && <ExerciseView key={cur.exercise.id} ex={cur.exercise} />}</div>
         </div>
       )}
     </>
