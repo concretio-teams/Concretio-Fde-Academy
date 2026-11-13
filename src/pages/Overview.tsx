@@ -56,7 +56,7 @@ export function Dashboard() {
       <div className="journey">
         {([
           ['Learn', '#/path', o.lessons + '/' + allLessons.length + ' lessons done', o.lessons === allLessons.length],
-          ['Practice', '#/assignments', o.assigns + '/' + allAssignments.length + ' assignments done', o.assigns === allAssignments.length],
+          ['Practice', '#/playground', o.exercises + '/' + allExercises.length + ' exercises, ' + o.assigns + '/' + allAssignments.length + ' assignments', o.assigns === allAssignments.length && o.exercises === allExercises.length],
           ['Prove', '#/final', p.final?.passed ? 'Final assessment passed' : 'Final assessment pending', !!p.final?.passed],
         ] as const).map(([label, to, sub, done], i) => (
           <a key={label} href={to} className={'jstep ' + (done ? 'done' : next.step === label ? 'now' : '')}>

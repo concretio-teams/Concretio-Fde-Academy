@@ -385,3 +385,29 @@ html, body { max-width: 100%; overflow-x: clip; }
 .btn.sm, .mobilebar .btn { white-space: nowrap; }
 .code > div:not(.bar) { overflow-x: auto; }
 .codeline { min-width: max-content; }
+
+/* ===== Sidebar follows the theme: light in light mode, navy in dark mode ===== */
+:root:not([data-theme='dark']) {
+  --side-bg: #fbfbfd; --side-text: #3b475c; --side-muted: #77839a;
+  --side-hover: rgba(30, 40, 60, .06); --side-line: var(--border);
+}
+:root:not([data-theme='dark']) .sidebar { border-right: 1px solid var(--border); }
+:root:not([data-theme='dark']) .logo-full, :root:not([data-theme='dark']) .mobilebrand img { filter: brightness(0) opacity(.78); }
+:root:not([data-theme='dark']) .product, :root:not([data-theme='dark']) .mobilebrand span { color: var(--accent-ink); }
+:root:not([data-theme='dark']) .iconbtn:hover { background: var(--side-hover); color: var(--text); }
+:root:not([data-theme='dark']) .searchbtn { background: var(--surface2); border-color: var(--border); color: var(--muted); }
+:root:not([data-theme='dark']) .searchbtn:hover { background: var(--side-hover); color: var(--text); }
+:root:not([data-theme='dark']) .searchbtn kbd { background: var(--surface); border-color: var(--border); color: var(--muted); }
+:root:not([data-theme='dark']) .nav a:hover { background: var(--side-hover); color: var(--text); }
+:root:not([data-theme='dark']) .nav a.active { background: var(--accent-soft); color: var(--accent-ink); }
+:root:not([data-theme='dark']) .nav a.active::before { background: var(--accent); }
+:root:not([data-theme='dark']) .nav { scrollbar-color: rgba(30, 40, 60, .2) transparent; }
+:root:not([data-theme='dark']) .sp-bar { background: var(--surface2); border: 1px solid var(--border); }
+:root:not([data-theme='dark']) .sp-bar i { background: var(--accent); }
+:root:not([data-theme='dark']) .account { color: var(--text); }
+:root:not([data-theme='dark']) .account:hover { background: var(--side-hover); color: var(--text); }
+:root:not([data-theme='dark']) .account b { color: var(--text); }
+:root:not([data-theme='dark']) .avatar { background: var(--accent); color: #2a3447; }
+:root:not([data-theme='dark']) .warnText { color: var(--warn) !important; }
+:root:not([data-theme='dark']) .mobilebar { background: var(--side-bg); border-bottom: 1px solid var(--border); }
+:root:not([data-theme='dark']) .mobilebar .iconbtn { color: var(--text); }

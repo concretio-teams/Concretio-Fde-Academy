@@ -1,4 +1,5 @@
-import { allLessons, allAssignments, modules } from '../content';
+import { allLessons, allAssignments, allExercises, modules } from '../content';
+import type { Assignment } from '../content/types';
 import type { Lesson, Module } from '../content/types';
 import type { Progress } from './store';
 import { TRACKS } from './tracks';
@@ -14,33 +15,52 @@ export function lessonDone(p: Progress, l: Lesson): boolean {
 export interface ModuleStats {
   lessonsDone: number; lessonsTotal: number;
   assignmentsDone: number; assignmentsTotal: number;
+  exercisesDone: number; exercisesTotal: number;
   quizAvg: number | null; pct: number; complete: boolean; started: boolean;
 }
 
+/** Partial credit, so ticking the steps of an assignment moves the bar before it is marked complete. */
+export function assignmentCredit(p: Progress, a: Assignment): number {
+  const st = p.assignments[a.id];
+  if (!st) return 0;
+  if (st.done) return 1;
+  return a.checklist.length ? Math.min(0.9, (st.checked.length / a.checklist.length) * 0.9) : 0;
+}
+
+/** 100 only when everything is truly done; otherwise at most 99 so rounding never lies. */
+const pctOf = (earned: number, total: number, complete: boolean) =>
+  total ? (complete ? 100 : Math.min(99, Math.floor((earned / total) * 100))) : 0;
+
+/** Progress counts every kind of task: quizzes passed, exercises solved, assignments and the final exam. */
 export function moduleStats(p: Progress, m: Module): ModuleStats {
   const lessonsDone = m.lessons.filter((l) => lessonDone(p, l)).length;
   const assignmentsDone = m.assignments.filter((a) => p.assignments[a.id]?.done).length;
+  const mex = allExercises.filter((x) => x.module.id === m.id);
+  const exercisesDone = mex.filter((x) => p.exercises[x.exercise.id]?.done).length;
   const scores = m.lessons.map((l) => p.quiz[l.id]).filter(Boolean).map((q) => (q.best / q.total) * 100);
-  const total = m.lessons.length + m.assignments.length;
-  const done = lessonsDone + assignmentsDone;
-  const started = m.lessons.some((l) => p.lessonsViewed[l.id] || p.quiz[l.id]) || assignmentsDone > 0;
+  const total = m.lessons.length + m.assignments.length + mex.length;
+  const earned = lessonsDone + exercisesDone + m.assignments.reduce((a, x) => a + assignmentCredit(p, x), 0);
+  const complete = total > 0 && lessonsDone === m.lessons.length && assignmentsDone === m.assignments.length && exercisesDone === mex.length;
+  const started = m.lessons.some((l) => p.lessonsViewed[l.id] || p.quiz[l.id]) || assignmentsDone > 0 || exercisesDone > 0;
   return {
     lessonsDone, lessonsTotal: m.lessons.length,
     assignmentsDone, assignmentsTotal: m.assignments.length,
+    exercisesDone, exercisesTotal: mex.length,
     quizAvg: scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null,
-    pct: total ? Math.round((done / total) * 100) : 0,
-    complete: total > 0 && done === total,
-    started,
+    pct: pctOf(earned, total, complete),
+    complete, started,
   };
 }
 
 export function overall(p: Progress) {
   const lessons = allLessons.filter((x) => lessonDone(p, x.lesson)).length;
   const assigns = allAssignments.filter((x) => p.assignments[x.assignment.id]?.done).length;
+  const exercises = allExercises.filter((x) => p.exercises[x.exercise.id]?.done).length;
   const finalDone = p.final?.passed ? 1 : 0;
-  const total = allLessons.length + allAssignments.length + 1;
-  const done = lessons + assigns + finalDone;
-  return { lessons, assigns, finalDone, total, done, pct: total ? Math.round((done / total) * 100) : 0 };
+  const total = allLessons.length + allExercises.length + allAssignments.length + 1;
+  const earned = lessons + exercises + finalDone + allAssignments.reduce((a, x) => a + assignmentCredit(p, x.assignment), 0);
+  const complete = lessons === allLessons.length && exercises === allExercises.length && assigns === allAssignments.length && finalDone === 1;
+  return { lessons, assigns, exercises, finalDone, total, done: Math.floor(earned), pct: pctOf(earned, total, complete) };
 }
 
 export function skillLevels(p: Progress): { skill: string; pct: number; level: string }[] {
@@ -96,6 +116,8 @@ export function nextAction(p: Progress): NextAction {
       if (p.lessonsViewed[l.id]) return { step: 'Learn', label: `Continue: ${l.title}`, why: `Module ${m.number}. Finish the lesson, then take its quiz.`, href: `#/lesson/${l.id}` };
       return { step: 'Learn', label: `${Object.keys(p.lessonsViewed).length ? 'Next lesson' : 'Start here'}: ${l.title}`, why: `Module ${m.number}: ${m.title}. About ${l.minutes} minutes.`, href: `#/lesson/${l.id}` };
     }
+    const ex = allExercises.find((x) => x.module.id === m.id && !p.exercises[x.exercise.id]?.done);
+    if (ex) return { step: 'Practice', label: `Practice: ${ex.exercise.title}`, why: `Try it hands-on in the Playground (Module ${m.number}).`, href: `#/playground/${ex.exercise.id}` };
     const a = m.assignments.find((x) => !p.assignments[x.id]?.done);
     if (a) return { step: 'Practice', label: `Assignment: ${a.title}`, why: `Apply Module ${m.number} on real code.`, href: `#/assignments/${a.id}` };
   }
