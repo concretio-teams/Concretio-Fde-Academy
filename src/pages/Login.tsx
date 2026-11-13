@@ -42,7 +42,11 @@ export function LoginPage() {
     return (
       <>
         <PageHead kicker="Account" title="Accounts are not available here" />
-        <Card><p>This deployment has no API server, so progress is saved in this browser only. Everything else works normally.</p><Button onClick={() => go()}>Back to dashboard</Button></Card>
+        <Card>
+          <p>The API server is not reachable, so progress is saved in this browser only. Everything else works normally.</p>
+          <p className="small muted">Running locally? Start both the web app and the API with <code>npm run dev:full</code>, then reload. On a deployed site, check <code>/api/health</code> and that <code>JWT_SECRET</code> and <code>DATABASE_URL</code> are set.</p>
+          <div className="row"><Button variant="primary" onClick={() => window.location.reload()}>Retry</Button><Button onClick={() => go()}>Back to dashboard</Button></div>
+        </Card>
       </>
     );
   }

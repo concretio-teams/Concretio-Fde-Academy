@@ -83,6 +83,7 @@ export function App() {
         <Button size="sm" onClick={() => setOpen(!open)} aria-label="Menu" aria-expanded={open}>Menu</Button>
         <b style={{ flex: 1 }}>Claude Code Academy</b>
         <Button size="sm" onClick={() => setSearchOpen(true)} aria-label="Search">Search</Button>
+        <a className="btn sm primary" href="#/login">{auth.status === 'user' ? 'Account' : 'Sign in'}</a>
       </div>
       <aside className={`sidebar ${open ? 'open' : ''}`} aria-label="Main navigation">
         <div className="brand">
@@ -109,11 +110,11 @@ export function App() {
               <span className="avatar">{(auth.user.name || auth.user.email)[0].toUpperCase()}</span>
               <span className="lbl"><b>{auth.user.name}</b><small className={auth.sync === 'error' ? 'warnText' : ''}>{syncLabel(auth)}</small></span>
             </a>
-          ) : auth.status === 'guest' ? (
+          ) : (
             <a className="account" href="#/login" title="Sign in to save progress across devices">
-              <span className="avatar">→</span><span className="lbl"><b>Sign in</b><small>Save progress to your account</small></span>
+              <span className="avatar">→</span><span className="lbl"><b>Sign in</b><small>{auth.status === 'unavailable' ? 'Server offline, saving locally' : 'Save progress to your account'}</small></span>
             </a>
-          ) : null}
+          )}
           <div className="row" style={{ gap: 6 }}>
             <Button size="sm" onClick={() => actions.setTheme(p.theme === 'dark' ? 'light' : 'dark')} title="Toggle theme" aria-label="Toggle theme">{p.theme === 'dark' ? '☀' : '☾'}<span className="lbl">{p.theme === 'dark' ? ' Light' : ' Dark'}</span></Button>
             <Button size="sm" onClick={() => setHelp(true)} title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">?</Button>
