@@ -8,21 +8,62 @@ Interactive, self-paced academy that turns developers into confident AI-assisted
 - 31 playground exercises (pick the command, order the workflow, fix the prompt, find the vulnerability)
 - 12 practical assignments and a final assessment (theory exam plus practical tasks)
 - Click-to-explore Mermaid diagrams, click-to-learn concepts, prompt builder, simulated Claude Code interface
-- 8 curated free resources, progress dashboard, streaks and skills (saved in the browser)
+- **Accounts:** sign up or sign in to save progress to your account and continue on any device. Guests keep working with browser-only saving, and guest progress is merged into the account on first sign-in.
+- **Global search:** `Ctrl/Cmd + K` or `/` searches lessons, concepts, exercises, assignments and resources.
+- **Easy journey:** the sidebar always shows the single best next step. Press `C` to continue from anywhere.
+- **Collapsible navigation** (`[` key) and keyboard shortcuts (`?` for the list).
 
-## Run it
+## Run it locally
 
 ```
 npm install
-npm run dev
-npm run build
+npm run dev:full      # web on :5173, API on :3001 (proxied)
 ```
+
+Without `DATABASE_URL` the API stores accounts in `.data/db.json`. That is for local development only.
+`npm run dev` alone starts just the web app; accounts then show as unavailable and progress saves in the browser.
+
+## Configuration
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `JWT_SECRET` | production | 16+ random characters, signs login cookies. Generate: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+| `DATABASE_URL` | production | Postgres connection string. Tables are created automatically. |
+| `ALLOWED_EMAIL_DOMAINS` | recommended | Comma separated, for example `concret.io`. Empty allows any email. |
+| `PGSSL` | no | `disable` if your Postgres has no TLS |
+
+See `.env.example`.
+
+## Deploy on Render (app and API in one service)
+
+1. Push this repo to GitHub.
+2. Render: New, Blueprint, select the repo. `render.yaml` creates the web service and a Postgres database and wires `DATABASE_URL`; `JWT_SECRET` is generated.
+3. Check `https://<your-service>/api/health`: it should report `"storage":"postgres"`.
+
+Notes: Render's free Postgres expires after a period and free web services sleep when idle, so use a paid plan for anything long lived.
+
+## Deploy on Vercel
+
+1. Create a Postgres database from the Vercel Marketplace (for example Neon) and copy its connection string.
+2. Import the repo in Vercel. Build settings come from `vercel.json`.
+3. Add environment variables `JWT_SECRET`, `DATABASE_URL`, `ALLOWED_EMAIL_DOMAINS`.
+4. Deploy, then open `/api/health` to confirm `"storage":"postgres"`.
+
+The API runs as one serverless function (`api/index.ts`); `/api/*` is rewritten to it in `vercel.json`. Do not deploy to Vercel without `DATABASE_URL`: its filesystem is ephemeral.
+
+## Security notes
+
+- Passwords are hashed with bcrypt; sessions are signed, HttpOnly, SameSite=Lax cookies (Secure in production); state changing requests are same-origin checked; auth endpoints are rate limited per server instance.
+- **Email addresses are not verified.** The domain allowlist stops outsiders using other domains, but anyone could register someone else's `@concret.io` address. The data at stake is learning progress only. Add email verification or SSO before storing anything sensitive.
+- There is no password reset flow yet.
 
 ## Structure
 
 - `src/content/modules/mN.ts` : one file per module (schema in `src/content/types.ts`)
 - `src/content/final.ts`, `src/content/resources.ts` : final assessment and resources
 - `src/ui/index.tsx` : the UI kit. All pages use only this layer, so replacing it with the in-house Focus UI package is a one-folder change.
+- `server/` : Express API (`app.ts`), storage (`store.ts`), standalone server (`index.ts`); `api/index.ts` is the Vercel entry
+- `shared/progress.ts` : progress shape and merge logic used by both browser and server
 - `CONTENT_GUIDE.md` : rules for writing and verifying content
 
 ## Notes

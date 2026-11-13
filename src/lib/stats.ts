@@ -65,6 +65,25 @@ export function recommended(p: Progress) {
   return null;
 }
 
+export interface NextAction { label: string; why: string; href: string; step: 'Learn' | 'Practice' | 'Prove' }
+
+/** The single best next thing to do, module by module: lesson, then its quiz, then its assignment, finally the exam. */
+export function nextAction(p: Progress): NextAction {
+  for (const m of modules) {
+    for (const l of m.lessons) {
+      if (lessonDone(p, l)) continue;
+      const q = p.quiz[l.id];
+      if (q) return { step: 'Learn', label: `Retake quiz: ${l.title}`, why: `You scored ${q.best}/${q.total}. Reach ${LESSON_PASS_PCT}% to complete it.`, href: `#/lesson/${l.id}/quiz` };
+      if (p.lessonsViewed[l.id]) return { step: 'Learn', label: `Continue: ${l.title}`, why: `Module ${m.number}. Finish the lesson, then take its quiz.`, href: `#/lesson/${l.id}` };
+      return { step: 'Learn', label: `${Object.keys(p.lessonsViewed).length ? 'Next lesson' : 'Start here'}: ${l.title}`, why: `Module ${m.number}: ${m.title}. About ${l.minutes} minutes.`, href: `#/lesson/${l.id}` };
+    }
+    const a = m.assignments.find((x) => !p.assignments[x.id]?.done);
+    if (a) return { step: 'Practice', label: `Assignment: ${a.title}`, why: `Apply Module ${m.number} on real code.`, href: `#/assignments/${a.id}` };
+  }
+  if (!p.final?.passed) return { step: 'Prove', label: 'Take the final assessment', why: 'Show you can use Claude Code on real work.', href: '#/final' };
+  return { step: 'Prove', label: 'Review your progress', why: 'You have completed the academy.', href: '#/progress' };
+}
+
 export function unmetRequirements(p: Progress, m: Module): Module[] {
   return m.requires
     .map((id) => modules.find((x) => x.id === id))

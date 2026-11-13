@@ -2,43 +2,27 @@ import { useSyncExternalStore } from 'react';
 
 const KEY = 'cca-progress-v1';
 
-export interface QuizResult { best: number; last: number; total: number; attempts: number; at: number }
-export interface AssignmentState { checked: number[]; done: boolean; notes: string; at?: number }
-export interface FinalState {
-  score: number; total: number; passed: boolean; at: number; attempts: number;
-  practical: Record<string, number[]>;
-}
-export interface Progress {
-  theme: 'light' | 'dark';
-  lessonsViewed: Record<string, number>;
-  lessonsManual: Record<string, boolean>;
-  quiz: Record<string, QuizResult>;
-  exercises: Record<string, { done: boolean; attempts: number }>;
-  assignments: Record<string, AssignmentState>;
-  final: FinalState | null;
-  finalPractical: Record<string, number[]>;
-  days: string[]; // active days, YYYY-MM-DD
-  history: { t: number; text: string }[];
-}
+import { emptyProgress, sanitize, type AssignmentState, type FinalState, type ProgressData, type QuizResult } from '../../shared/progress';
+export type { AssignmentState, FinalState, QuizResult };
+export type Progress = ProgressData;
 
 const prefersDark = typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches;
 
-const empty = (): Progress => ({
-  theme: prefersDark ? 'dark' : 'light',
-  lessonsViewed: {}, lessonsManual: {}, quiz: {}, exercises: {}, assignments: {},
-  final: null, finalPractical: {}, days: [], history: [],
-});
+const empty = (): Progress => emptyProgress(prefersDark ? 'dark' : 'light');
 
 function load(): Progress {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return { ...empty(), ...JSON.parse(raw) };
+    if (raw) { const p = JSON.parse(raw); return { ...sanitize(p), theme: p.theme === 'dark' ? 'dark' : 'light' }; }
   } catch { /* storage unavailable */ }
   return empty();
 }
 
 let state: Progress = load();
 const subs = new Set<() => void>();
+const changeSubs = new Set<(s: Progress, silent: boolean) => void>();
+export const onProgressChange = (cb: (s: Progress, silent: boolean) => void) => { changeSubs.add(cb); return () => { changeSubs.delete(cb); }; };
+export const getProgress = () => state;
 
 function today(d = new Date()): string {
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -46,13 +30,14 @@ function today(d = new Date()): string {
   return `${d.getFullYear()}-${m}-${day}`;
 }
 
-function commit(next: Progress, log?: string) {
+function commit(next: Progress, log?: string, silent = false) {
   const t = Date.now();
-  const days = next.days.includes(today()) ? next.days : [...next.days, today()];
+  const days = silent || next.days.includes(today()) ? next.days : [...next.days, today()];
   const history = log ? [{ t, text: log }, ...next.history].slice(0, 150) : next.history;
   state = { ...next, days, history };
   try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* ignore */ }
   subs.forEach((f) => f());
+  changeSubs.forEach((f) => f(state, silent));
 }
 
 export function useProgress(): Progress {
@@ -120,6 +105,8 @@ export const actions = {
       `Final assessment theory: ${score}/${total} (${pct}%)`,
     );
   },
+  /** Replace everything (used after sign-in merge and on sign-out). Silent: does not trigger a cloud save. */
+  replaceProgress(next: Progress, silent = true) { commit({ ...next, theme: state.theme }, undefined, silent); },
   reset() {
     const theme = state.theme;
     commit({ ...empty(), theme });

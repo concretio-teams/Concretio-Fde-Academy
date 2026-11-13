@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { nextAction } from '../lib/stats';
 import { allLessons, lessonById, moduleById, modules, nextLessonAfter } from '../content';
 import { BlockView } from '../components/Blocks';
 import { Quiz } from '../components/Quiz';
@@ -62,10 +63,11 @@ export function PathPage() {
   );
 }
 
-export function LessonPage({ id }: { id: string }) {
+export function LessonPage({ id, scrollToQuiz }: { id: string; scrollToQuiz?: boolean }) {
   const p = useProgress();
   const found = lessonById(id);
   useEffect(() => { if (found) actions.viewLesson(found.lesson.id, found.lesson.title); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (scrollToQuiz) setTimeout(() => document.getElementById("quiz")?.scrollIntoView({ behavior: "smooth" }), 300); }, [scrollToQuiz, id]);
   if (!found) return <PageHead title="Lesson not found">Pick a lesson from the <a href={href('path')}>learning path</a>.</PageHead>;
   const { lesson, module: m, index } = found;
   const next = nextLessonAfter(lesson.id);
@@ -92,6 +94,13 @@ export function LessonPage({ id }: { id: string }) {
           ? <Quiz questions={lesson.quiz} onFinish={(s, t) => actions.recordQuiz(lesson.id, lesson.title, s, t)} />
           : <Button variant="primary" onClick={() => actions.markLesson(lesson.id, lesson.title, true)}>Mark lesson complete</Button>}
       </div>
+      {done && (() => { const n = nextAction(p); return (
+        <div className="hero" style={{ marginTop: 18 }}>
+          <div className="kicker">Lesson complete. What is next?</div>
+          <h3 style={{ margin: '4px 0' }}>{n.label}</h3>
+          <p className="muted small">{n.why}</p>
+          <LinkButton variant="primary" href={n.href}>Continue</LinkButton>
+        </div>); })()}
       <div className="row spread" style={{ marginTop: 24 }}>
         {index > 0 ? <LinkButton href={href('lesson', m.lessons[index - 1].id)}>Previous lesson</LinkButton> : <span />}
         {next ? <LinkButton variant="primary" href={href('lesson', next.lesson.id)}>Next: {next.lesson.title}</LinkButton>

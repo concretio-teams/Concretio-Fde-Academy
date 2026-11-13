@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { allAssignments, allExercises, assignmentById, finalAssessment, resources } from '../content';
 import { ExerciseView } from '../components/Exercises';
 import { Quiz, shuffle } from '../components/Quiz';
@@ -8,10 +8,11 @@ import { Badge, Button, Card, LinkButton, PageHead, Progress, Rich } from '../ui
 
 const CATS: Record<string, string> = { all: 'All', command: 'Commands', workflow: 'Workflows', prompt: 'Prompts', security: 'Security', approach: 'Approach' };
 
-export function PlaygroundPage() {
+export function PlaygroundPage({ id }: { id?: string }) {
   const p = useProgress();
   const [cat, setCat] = useState('all');
-  const [sel, setSel] = useState<string | null>(null);
+  const [sel, setSel] = useState<string | null>(id ?? null);
+  useEffect(() => { if (id) { setSel(id); setCat("all"); } }, [id]);
   const list = allExercises.filter((e) => cat === 'all' || e.exercise.category === cat);
   const solved = allExercises.filter((e) => p.exercises[e.exercise.id]?.done).length;
   const cur = allExercises.find((e) => e.exercise.id === sel) ?? list[0];

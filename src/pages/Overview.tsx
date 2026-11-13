@@ -1,7 +1,8 @@
 import { allAssignments, allExercises, allLessons, modules } from '../content';
 import { href } from '../lib/router';
-import { lessonDone, moduleStats, overall, recommended, skillLevels } from '../lib/stats';
-import { actions, streak, useProgress, type Progress as P } from '../lib/store';
+import { lessonDone, moduleStats, nextAction, overall, skillLevels } from '../lib/stats';
+import { resetAll } from '../lib/auth';
+import { streak, useProgress, type Progress as P } from '../lib/store';
 import { Badge, Button, Card, LinkButton, PageHead, Progress, Ring } from '../ui';
 
 function achievements(p: P) {
@@ -24,7 +25,7 @@ function achievements(p: P) {
 export function Dashboard() {
   const p = useProgress();
   const o = overall(p);
-  const rec = recommended(p);
+  const next = nextAction(p);
   const st = streak(p.days);
   const solved = allExercises.filter((e) => p.exercises[e.exercise.id]?.done).length;
   const scores = Object.values(p.quiz);
@@ -38,8 +39,8 @@ export function Dashboard() {
           <div className="kicker">Claude Code Academy</div>
           <h1>{o.done === 0 ? 'Welcome. Start your first lesson.' : 'Keep going, you are making progress.'}</h1>
           <p className="muted">From AI coding tool user to confident AI-assisted engineer. {allLessons.length} lessons, {allExercises.length} exercises, {allAssignments.length} assignments and a final assessment.</p>
-          {rec && <LinkButton variant="primary" href={href('lesson', rec.lesson.id)}>{o.done === 0 ? 'Start' : 'Continue'}: {rec.lesson.title}</LinkButton>}
-          {!rec && <LinkButton variant="primary" href={href('final')}>Take the final assessment</LinkButton>}
+          <LinkButton variant="primary" href={next.href}>{next.label}</LinkButton>
+          <div className="small muted" style={{ marginTop: 6 }}>{next.why} Press <kbd>C</kbd> anytime to continue.</div>
         </div>
       </div>
       <div className="grid c4" style={{ marginBottom: 20 }}>
@@ -47,6 +48,19 @@ export function Dashboard() {
         <Card><div className="stat"><span className="muted small">Quiz average</span><b>{avg === null ? '–' : `${avg}%`}</b></div></Card>
         <Card><div className="stat"><span className="muted small">Learning streak</span><b>{st.current} day{st.current === 1 ? '' : 's'}</b><span className="small muted">best {st.best}</span></div></Card>
         <Card><div className="stat"><span className="muted small">Exercises solved</span><b>{solved}/{allExercises.length}</b></div></Card>
+      </div>
+      <h2>Your journey</h2>
+      <div className="journey">
+        {([
+          ['Learn', '#/path', o.lessons + '/' + allLessons.length + ' lessons done', o.lessons === allLessons.length],
+          ['Practice', '#/assignments', o.assigns + '/' + allAssignments.length + ' assignments done', o.assigns === allAssignments.length],
+          ['Prove', '#/final', p.final?.passed ? 'Final assessment passed' : 'Final assessment pending', !!p.final?.passed],
+        ] as const).map(([label, to, sub, done], i) => (
+          <a key={label} href={to} className={'jstep ' + (done ? 'done' : next.step === label ? 'now' : '')}>
+            <div><span className="n">{done ? '✓' : i + 1}</span><b>{label}</b></div>
+            <div className="small muted" style={{ marginTop: 4 }}>{sub}</div>
+          </a>
+        ))}
       </div>
       <h2>Five rules for every session</h2>
       <div className="grid c4" style={{ marginBottom: 24 }}>
@@ -130,7 +144,7 @@ export function ProgressPage() {
         </div>
       )}
       <div style={{ marginTop: 30 }}>
-        <Button onClick={() => { if (window.confirm('Reset all progress on this device? This cannot be undone.')) actions.reset(); }}>Reset progress</Button>
+        <Button onClick={() => { if (window.confirm('Reset all progress? If you are signed in, your saved account progress is erased too. This cannot be undone.')) void resetAll(); }}>Reset progress</Button>
       </div>
     </>
   );
