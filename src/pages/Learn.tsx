@@ -1,0 +1,148 @@
+import { useEffect } from 'react';
+import { allLessons, lessonById, moduleById, modules, nextLessonAfter } from '../content';
+import { BlockView } from '../components/Blocks';
+import { Quiz } from '../components/Quiz';
+import { href } from '../lib/router';
+import { lessonDone, moduleStats, unmetRequirements } from '../lib/stats';
+import { actions, useProgress } from '../lib/store';
+import { Badge, Button, Card, LinkButton, PageHead, Progress, Rich } from '../ui';
+
+export function PathPage() {
+  const p = useProgress();
+  return (
+    <>
+      <PageHead kicker="Learning path" title="Eight modules, one direction">
+        Work top to bottom. Each module builds on the ones before it; the path shows what to finish first.
+      </PageHead>
+      <div className="stack">
+        {modules.map((m) => {
+          const s = moduleStats(p, m);
+          const unmet = unmetRequirements(p, m);
+          return (
+            <div key={m.id} className={`card mod ${s.complete ? 'done' : s.started ? 'active' : ''}`}>
+              <div className="row" style={{ alignItems: 'flex-start', gap: 14 }}>
+                <div className="num">{s.complete ? '✓' : m.number}</div>
+                <div style={{ flex: 1, minWidth: 240 }}>
+                  <div className="row spread">
+                    <h2 style={{ margin: 0 }}>{m.title}</h2>
+                    <div className="row"><Badge tone="accent">{m.level}</Badge>{s.complete && <Badge tone="ok">Complete</Badge>}</div>
+                  </div>
+                  <p className="muted">{m.tagline}</p>
+                  {m.requires.length > 0 && (
+                    <div className="small muted">Builds on: {m.requires.map((r) => moduleById(r)?.title ?? r).join(', ')}</div>
+                  )}
+                  {unmet.length > 0 && <div className="small" style={{ color: 'var(--warn)' }}>Recommended first: finish {unmet.map((u) => `Module ${u.number}`).join(', ')}.</div>}
+                  <div style={{ margin: '10px 0' }}><Progress value={s.pct} tone={s.complete ? 'ok' : undefined} /></div>
+                  <div className="small muted">{s.lessonsDone}/{s.lessonsTotal} lessons, {s.assignmentsDone}/{s.assignmentsTotal} assignments{s.quizAvg !== null ? `, quiz average ${s.quizAvg}%` : ''}</div>
+                  <details style={{ marginTop: 8 }}>
+                    <summary className="small"><b>You will be able to</b></summary>
+                    <ul className="small">{m.outcomes.map((o) => <li key={o}>{o}</li>)}</ul>
+                  </details>
+                  <div className="stack" style={{ marginTop: 10, gap: 6 }}>
+                    {m.lessons.map((l, i) => (
+                      <a key={l.id} href={href('lesson', l.id)} className="row spread" style={{ textDecoration: 'none', color: 'inherit', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 10 }}>
+                        <span>{lessonDone(p, l) ? '✓ ' : ''}Lesson {i + 1}: {l.title}</span>
+                        <span className="small muted">{l.minutes} min{p.quiz[l.id] ? `, quiz ${p.quiz[l.id].best}/${p.quiz[l.id].total}` : ''}</span>
+                      </a>
+                    ))}
+                    {m.assignments.map((a) => (
+                      <a key={a.id} href={href('assignments', a.id)} className="row spread" style={{ textDecoration: 'none', color: 'inherit', padding: '8px 10px', border: '1px dashed var(--border)', borderRadius: 10 }}>
+                        <span>{p.assignments[a.id]?.done ? '✓ ' : ''}Assignment: {a.title}</span>
+                        <span className="small muted">practical</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+export function LessonPage({ id }: { id: string }) {
+  const p = useProgress();
+  const found = lessonById(id);
+  useEffect(() => { if (found) actions.viewLesson(found.lesson.id, found.lesson.title); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!found) return <PageHead title="Lesson not found">Pick a lesson from the <a href={href('path')}>learning path</a>.</PageHead>;
+  const { lesson, module: m, index } = found;
+  const next = nextLessonAfter(lesson.id);
+  const done = lessonDone(p, lesson);
+  const q = p.quiz[lesson.id];
+  return (
+    <>
+      <div className="small muted"><a href={href('path')}>Path</a> / Module {m.number}: {m.title}</div>
+      <PageHead kicker={`Module ${m.number}, lesson ${index + 1} of ${m.lessons.length}`} title={lesson.title} />
+      <div className="row" style={{ marginBottom: 14 }}>
+        <Badge>{lesson.minutes} min</Badge>
+        {done && <Badge tone="ok">Completed</Badge>}
+        {q && <Badge>Best quiz {q.best}/{q.total}</Badge>}
+      </div>
+      <Card>
+        <b>By the end of this lesson you can:</b>
+        <ul style={{ margin: '6px 0 0' }}>{lesson.objectives.map((o) => <li key={o}>{o}</li>)}</ul>
+      </Card>
+      {lesson.blocks.map((b, i) => <BlockView key={i} block={b} />)}
+      <div className="block" id="quiz">
+        <h2>Knowledge check</h2>
+        <p className="muted">{lesson.quiz.length} questions. Reach 70% to complete this lesson. Retry as often as you like.</p>
+        {lesson.quiz.length > 0
+          ? <Quiz questions={lesson.quiz} onFinish={(s, t) => actions.recordQuiz(lesson.id, lesson.title, s, t)} />
+          : <Button variant="primary" onClick={() => actions.markLesson(lesson.id, lesson.title, true)}>Mark lesson complete</Button>}
+      </div>
+      <div className="row spread" style={{ marginTop: 24 }}>
+        {index > 0 ? <LinkButton href={href('lesson', m.lessons[index - 1].id)}>Previous lesson</LinkButton> : <span />}
+        {next ? <LinkButton variant="primary" href={href('lesson', next.lesson.id)}>Next: {next.lesson.title}</LinkButton>
+          : <LinkButton variant="primary" href={href('final')}>Go to final assessment</LinkButton>}
+      </div>
+    </>
+  );
+}
+
+export function KnowledgePage({ lessonId }: { lessonId?: string }) {
+  const p = useProgress();
+  if (lessonId) {
+    const f = lessonById(lessonId);
+    if (!f) return <PageHead title="Quiz not found" />;
+    return (
+      <>
+        <div className="small muted"><a href={href('knowledge')}>Knowledge checks</a> / {f.lesson.title}</div>
+        <PageHead kicker={`Module ${f.module.number}`} title={f.lesson.title} />
+        <Quiz questions={f.lesson.quiz} onFinish={(s, t) => actions.recordQuiz(f.lesson.id, f.lesson.title, s, t)} />
+      </>
+    );
+  }
+  const taken = Object.values(p.quiz);
+  const avg = taken.length ? Math.round(taken.reduce((a, q) => a + (q.best / q.total) * 100, 0) / taken.length) : null;
+  return (
+    <>
+      <PageHead kicker="Knowledge check" title="Test decisions, not definitions">
+        Every question is a realistic situation. Scores are tracked and you can retry any quiz.
+      </PageHead>
+      <div className="row" style={{ marginBottom: 14 }}>
+        <Badge tone="accent">{taken.length}/{allLessons.length} quizzes taken</Badge>
+        {avg !== null && <Badge>Average best score {avg}%</Badge>}
+      </div>
+      {modules.map((m) => (
+        <div key={m.id} style={{ marginBottom: 18 }}>
+          <h3>Module {m.number}: {m.title}</h3>
+          <div className="grid c2">
+            {m.lessons.map((l) => {
+              const q = p.quiz[l.id];
+              return (
+                <Card key={l.id} onClick={() => { window.location.hash = href('knowledge', l.id); }}>
+                  <div className="row spread"><b>{l.title}</b>{q && (q.best / q.total >= 0.7 ? <Badge tone="ok">Passed</Badge> : <Badge tone="warn">Retry</Badge>)}</div>
+                  <div className="small muted">{l.quiz.length} questions{q ? `, best ${q.best}/${q.total}, ${q.attempts} attempt${q.attempts > 1 ? 's' : ''}` : ''}</div>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
+export { Rich };

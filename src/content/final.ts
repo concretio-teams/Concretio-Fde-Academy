@@ -1,0 +1,370 @@
+import type { FinalAssessment } from './types';
+
+const o = (text: string, why: string) => ({ text, why });
+
+export const final: FinalAssessment = {
+  passMark: 75,
+  questions: [
+    // ---------------- m1: AI-assisted development concepts ----------------
+    {
+      id: 'f1',
+      module: 'm1',
+      scenario: 'A teammate pastes an AI generated function that calculates tax and says "it compiles and the demo looked right, so I will merge it". Tax rules in your product change by region.',
+      q: 'What is the best next step?',
+      options: [
+        o('Merge it; the demo output matched expectations', 'A demo covers a few inputs. Regional tax edge cases (rounding, exemptions, thresholds) are exactly where plausible but wrong code hides.'),
+        o('Ask the AI whether its function is correct and merge if it says yes', 'A model grading its own output is weak evidence. It can confidently repeat the same mistake.'),
+        o('Write tests from the actual tax rules including edge cases, run them, and review the logic against the source rules before merging', 'Correct. Verification must come from an independent source of truth (the rules), not from the same model or a single demo.'),
+        o('Reject all AI generated code in tax logic permanently', 'Overcorrection. AI can draft and test this code; the issue is missing verification, not the tool.'),
+      ],
+      answer: 2,
+    },
+    {
+      id: 'f2',
+      module: 'm1',
+      scenario: 'You must decide how to handle three tasks today: (a) rename a variable across 40 files, (b) design the data retention policy for customer data under GDPR, (c) write unit tests for a pure utility function.',
+      q: 'Which split of work is the most sensible?',
+      options: [
+        o('Use AI for (a) and (c) with review, and make (b) a human decision with legal input, using AI only for drafting options', 'Correct. Mechanical, verifiable work suits AI. Judgment with legal consequences needs human ownership.'),
+        o('Let AI do all three end to end to save time', 'The retention policy is a legal and business decision with accountability. AI can inform it but must not own it.'),
+        o('Do everything manually to stay in control', 'Wasteful for (a) and (c), which are well bounded and easy to verify.'),
+        o('Use AI only for (b) because it is the hardest', 'Reverses the logic. Difficulty with high stakes and no easy verification is where you lean least on AI.'),
+      ],
+      answer: 0,
+    },
+    {
+      id: 'f3',
+      module: 'm1',
+      scenario: 'A junior developer uses AI for every task and cannot explain how the code they submit works. Reviews keep finding subtle bugs.',
+      q: 'What should the team lead do?',
+      options: [
+        o('Ban AI tools for the junior developer', 'Treats the symptom. Many strong teams use AI well; the problem is understanding and review discipline.'),
+        o('Do nothing; reviewers will catch the bugs', 'Relying on reviewers to catch everything is slow, costly and erodes trust.'),
+        o('Add more AI review steps and merge faster', 'More automated review does not create understanding and may hide the root issue.'),
+        o('Require them to explain and test what they submit, pair on a few tasks, and set a rule that nobody merges code they cannot explain', 'Correct. Ownership means understanding. This builds skills while keeping the productivity benefit.'),
+      ],
+      answer: 3,
+    },
+    // ---------------- m2: install, permissions, sessions, context ----------------
+    {
+      id: 'f4',
+      module: 'm2',
+      scenario: 'You are two hours into a session on feature A. You now need to start unrelated work on a billing bug. The context is full of feature A details.',
+      q: 'What is the best approach?',
+      options: [
+        o('Keep going in the same session so Claude remembers everything', 'Irrelevant history adds noise and cost, and can bias the new task.'),
+        o('Use /clear to start fresh (name it first if you want to return), and give the billing bug its own prompt', 'Correct. /clear starts a new conversation with empty context, and you can find the previous one again with /resume.'),
+        o('Run /compact with the instruction "forget feature A"', '/compact summarises the same conversation; it is for continuing the same task, not switching topics.'),
+        o('Reinstall Claude Code', 'Irrelevant. Context is per session, not a property of the install.'),
+      ],
+      answer: 1,
+    },
+    {
+      id: 'f5',
+      module: 'm2',
+      scenario: 'You open a client repository you have never seen and want Claude to explore it, but you do not want any file to change until you have reviewed a plan.',
+      q: 'Which setup fits?',
+      options: [
+        o('Delete the .git folder so nothing can be committed', 'Destroys history and does not prevent file edits.'),
+        o('Run with bypassPermissions so it does not interrupt you', 'The opposite of what you want: it skips permission prompts.'),
+        o('Use acceptEdits so changes are fast to review afterwards', 'acceptEdits automatically accepts file edits, so edits would happen without review.'),
+        o('Start with `claude --permission-mode plan`, or press Shift+Tab in the session to cycle to plan mode', 'Correct. In plan mode Claude reads and explores but does not edit source files until you approve a plan.'),
+      ],
+      answer: 3,
+    },
+    {
+      id: 'f6',
+      module: 'm2',
+      scenario: 'Responses in a long session are getting worse: Claude forgets earlier decisions and repeats questions. You want to see what is consuming the context.',
+      q: 'What should you do first?',
+      options: [
+        o('Switch to a new model and retry', 'The symptom matches a crowded context, not model choice. Diagnose first.'),
+        o('Repeat the same prompt louder in capital letters', 'Emphasis does not fix a context problem.'),
+        o('Run /context to see context usage, then /compact with focus instructions or /clear depending on whether you continue the same task', 'Correct. /context visualises usage and suggests optimisations; /compact keeps the thread, /clear resets it.'),
+        o('Paste the whole repository into the prompt for reference', 'Adds even more context and worsens the problem.'),
+      ],
+      answer: 2,
+    },
+    // ---------------- m3: plan mode and workflow ----------------
+    {
+      id: 'f7',
+      module: 'm3',
+      scenario: 'The task is: "add a one line null check to a utility function whose bug you already located".',
+      q: 'How much planning does this deserve?',
+      options: [
+        o('A full plan mode session with a written design document', 'Disproportionate. The change is small, local and easy to verify with a test.'),
+        o('Just ask for the fix directly and verify it with a test or run, skipping heavy planning', 'Correct. Plan mode pays off for multi file, uncertain or risky changes, not for trivial well understood ones.'),
+        o('Ask Claude to rewrite the module to avoid null checks entirely', 'Scope creep from a one line fix.'),
+        o('Never fix it, since AI should not touch utilities', 'No such rule exists. Verify and move on.'),
+      ],
+      answer: 1,
+    },
+    {
+      id: 'f8',
+      module: 'm3',
+      scenario: 'You asked Claude (in plan mode) for a plan to migrate authentication to a new provider. The plan touches 25 files and includes a step "update the session store" you do not understand.',
+      q: 'What is the right response?',
+      options: [
+        o('Ask Claude to explain that step with file references, request a smaller first milestone, and approve only after you understand the risks', 'Correct. Reviewing the plan is the whole point of plan mode. Narrowing the first milestone limits blast radius.'),
+        o('Approve it; Claude explored the code so it knows best', 'The plan is an artefact to review, not an authority. An unexplained step in an auth migration is a real risk.'),
+        o('Reject planning and ask it to do the migration in one go', 'Removes the review step exactly when risk is highest.'),
+        o('Approve and read the diff after it is finished', 'Reviewing a 25 file diff without having understood the intent is far harder than reviewing the plan.'),
+      ],
+      answer: 0,
+    },
+    {
+      id: 'f9',
+      module: 'm3',
+      scenario: 'Claude is halfway through an implementation and heading in a direction you do not like. It has already edited several files.',
+      q: 'What is the cleanest way to recover?',
+      options: [
+        o('Keep correcting it in the same thread five or six times', 'After two failed corrections the context fills with failed attempts. Better to rewind or /clear and write a sharper prompt.'),
+        o('Let it finish and then manually undo the changes file by file', 'Slow and error prone, and the conversation still contains the wrong direction.'),
+        o('Press Esc to stop it, then use /rewind (or Esc twice on an empty prompt) to restore code and conversation to an earlier point, and redirect', 'Correct. Esc stops mid action without losing work, and the rewind menu rolls back code, conversation or both.'),
+        o('Close the terminal and hope nothing was saved', 'Edits already on disk remain. This also loses the session.'),
+      ],
+      answer: 2,
+    },
+    // ---------------- m4: prompting and CLAUDE.md ----------------
+    {
+      id: 'f10',
+      module: 'm4',
+      scenario: 'Your CLAUDE.md has grown to 600 lines, mixing build commands, style opinions, old notes and instructions for one legacy module. Claude often ignores parts of it.',
+      q: 'What is the best fix?',
+      options: [
+        o('Add more emphasis, such as IMPORTANT in capitals, to every line', 'Emphasis everywhere means emphasis nowhere, and the file stays long.'),
+        o('Move everything into a CLAUDE.local.md', 'That file is for personal, uncommitted preferences, not team rules.'),
+        o('Delete CLAUDE.md and repeat instructions in every prompt', 'Loses persistent context and wastes effort.'),
+        o('Trim to concise, specific, non contradictory rules (aim under about 200 lines) and move module specific guidance into path scoped rules under .claude/rules/', 'Correct. Long or contradictory files reduce adherence. Scoping rules keeps context relevant.'),
+      ],
+      answer: 3,
+    },
+    {
+      id: 'f11',
+      module: 'm4',
+      scenario: 'You want Claude to "make the search faster". It spends an hour adding caching, then rewrites the query builder, and you cannot tell if it improved anything.',
+      q: 'How should the prompt be improved?',
+      options: [
+        o('State the metric and target, the scope, and how to verify: "p95 of /search must drop from 900ms to under 300ms; only touch search/; run the benchmark script before and after and report numbers"', 'Correct. A measurable goal, a scope boundary and a verification step let Claude and you confirm success.'),
+        o('"Please make the search REALLY fast, as fast as possible"', 'Intensity does not add information. There is still no target or measure.'),
+        o('Ask for ten different optimisations at once and choose the best', 'Produces unfocused changes and a harder review with no measurement.'),
+        o('Say nothing about scope so Claude can be creative', 'Unbounded scope leads to surprise rewrites.'),
+      ],
+      answer: 0,
+    },
+    {
+      id: 'f12',
+      module: 'm4',
+      scenario: 'A team rule says "never edit files under migrations/ without approval". You put it in CLAUDE.md, but occasionally Claude still edits one.',
+      q: 'What is the most reliable way to enforce it?',
+      options: [
+        o('Repeat the rule in every prompt', 'Still instruction level, so it can be missed.'),
+        o('Keep it in CLAUDE.md for guidance and also add a PreToolUse hook (or a deny permission rule) that blocks edits to that path', 'Correct. CLAUDE.md is context, not enforcement. Hooks and permission rules are deterministic.'),
+        o('Make CLAUDE.md longer and more detailed', 'Length does not turn guidance into enforcement.'),
+        o('Trust it, because Claude usually obeys', '"Usually" is not acceptable for a rule that cannot have exceptions.'),
+      ],
+      answer: 1,
+    },
+    // ---------------- m5: skills, subagents, hooks, MCP ----------------
+    {
+      id: 'f13',
+      module: 'm5',
+      scenario: 'Your team repeats the same 8 step release checklist every week. Steps are consistent and Claude sometimes forgets one.',
+      q: 'What is the best way to capture this?',
+      options: [
+        o('Create an MCP server for the checklist', 'MCP connects external tools and data. A text procedure does not need a server.'),
+        o('Paste the checklist into chat every week', 'Manual, inconsistent and easy to forget.'),
+        o('Put all eight steps into a hook that runs on every prompt', 'Hooks fire on lifecycle events, and running a release procedure on every prompt would be disruptive and wrong.'),
+        o('Write it as a skill (a SKILL.md under .claude/skills/<name>/) so it can be invoked as a slash command and kept in version control', 'Correct. Skills package repeatable instructions and can be shared with the repo.'),
+      ],
+      answer: 3,
+    },
+    {
+      id: 'f14',
+      module: 'm5',
+      scenario: 'You want to investigate a large part of a codebase for all uses of a deprecated API, without flooding your main conversation with hundreds of search results.',
+      q: 'Which approach fits?',
+      options: [
+        o('Read every matching file in the main conversation', 'Fills the main context with raw output.'),
+        o('Disable search tools and ask from memory', 'Claude would guess rather than check the code.'),
+        o('Delegate the search to a subagent (for example the built in Explore agent) so it works in its own context and reports a summary', 'Correct. Subagents run in separate contexts and return findings, protecting your main context.'),
+        o('Use /compact after every search result', 'Compacting does not prevent the initial flood and loses detail.'),
+      ],
+      answer: 2,
+    },
+    {
+      id: 'f15',
+      module: 'm5',
+      scenario: 'A teammate suggests adding a community MCP server they found online that "connects to your database and cloud account", using your admin credentials, to speed things up.',
+      q: 'What is the right call?',
+      options: [
+        o('Review the source and publisher, prefer a read only credential, add it with the least scope needed (for example project scope for sharing via .mcp.json after team review), and keep tokens out of version control', 'Correct. Treat MCP servers like third party code with access. Least privilege and review are essential.'),
+        o('Add it at user scope; it is popular so it must be safe', 'Popularity is not a security review. Servers that fetch external content can also expose you to prompt injection.'),
+        o('Add it with the admin credentials to avoid permission errors', 'Maximum privilege to untrusted code is the opposite of least privilege.'),
+        o('Ban MCP entirely', 'Too blunt. Vetted servers with limited access are valuable.'),
+      ],
+      answer: 0,
+    },
+    // ---------------- m6: real world vibe coding scenarios ----------------
+    {
+      id: 'f16',
+      module: 'm6',
+      scenario: 'A founder with little coding experience asks you to help vibe code a customer portal that stores personal data. They plan to launch in a week using only what the AI produces.',
+      q: 'What is the most responsible guidance?',
+      options: [
+        o('Go ahead; AI handles security automatically', 'No tool guarantees security. Authentication, authorisation and data handling need explicit review.'),
+        o('Build quickly but add review gates: a security review, tests for auth and data access, secrets handling, and a human who understands the code before launch', 'Correct. Speed is fine when the risky parts are verified. Personal data raises the bar.'),
+        o('Refuse to help because vibe coding is unprofessional', 'Unhelpful. The right answer is to add the missing safeguards.'),
+        o('Launch first and fix issues reported by users', 'With personal data, users should not be the security testers.'),
+      ],
+      answer: 1,
+    },
+    {
+      id: 'f17',
+      module: 'm6',
+      scenario: 'Building a side project, you have accepted 30 AI generated changes without running the app. It now fails on startup, and you cannot tell which change broke it.',
+      q: 'What habit would have prevented this?',
+      options: [
+        o('Use a bigger model', 'The issue is process, not capability.'),
+        o('Write longer prompts', 'Longer prompts do not provide feedback or recovery points.'),
+        o('Work in small steps: run or test after each change, commit working states, and use git or /rewind to return to a good point', 'Correct. Small verified steps keep failures local and recoverable.'),
+        o('Accept changes faster so less context is lost', 'Speed without verification caused the problem.'),
+      ],
+      answer: 2,
+    },
+    {
+      id: 'f18',
+      module: 'm6',
+      scenario: 'You are fixing a bug in a legacy app with almost no tests. Claude proposes a fix that looks right.',
+      q: 'What is the best way to proceed?',
+      options: [
+        o('Apply and deploy; the logic is obvious', 'Without tests, a plausible fix can break neighbouring behaviour unnoticed.'),
+        o('Skip it; legacy apps are not worth testing', 'Bugs in legacy code still affect users, and a targeted test is cheap.'),
+        o('Ask Claude to rewrite the whole legacy module', 'Large rewrite without tests is high risk.'),
+        o('First write a failing test (or reproduction script) that captures the bug, apply the fix, confirm it passes, and run what existing checks you have', 'Correct. A reproducing test proves the bug is fixed and guards against regression.'),
+      ],
+      answer: 3,
+    },
+    // ---------------- m7: security, testing, production readiness ----------------
+    {
+      id: 'f19',
+      module: 'm7',
+      scenario: 'Claude generated an endpoint: `app.get("/user/:id", (req,res) => db.query("SELECT * FROM users WHERE id = " + req.params.id).then(r => res.json(r)))`. It works in testing.',
+      q: 'What is your response in review?',
+      options: [
+        o('Request changes: use parameterised queries, check that the caller is authorised for that user id, return only needed fields, and add error handling', 'Correct. String concatenation allows SQL injection, there is no authorisation check (any user could read any id), SELECT * may leak sensitive columns, and errors are unhandled.'),
+        o('Approve; it returns the right data', 'Functional correctness hides serious flaws here.'),
+        o('Only add input validation that id is a number', 'Helpful but incomplete. Authorisation and field exposure remain unaddressed.'),
+        o('Ask Claude to confirm it is secure', 'Not an independent verification.'),
+      ],
+      answer: 0,
+    },
+    {
+      id: 'f20',
+      module: 'm7',
+      scenario: 'You find a real API key in a file Claude edited and committed to a branch that has been pushed to a shared remote.',
+      q: 'What is the right order of actions?',
+      options: [
+        o('Delete the file in a new commit and continue', 'The key remains in git history and on the remote. Anyone with access can retrieve it.'),
+        o('Tell Claude never to do it again and keep the key', 'A leaked key must be rotated regardless of instructions.'),
+        o('Revoke and rotate the key immediately, then remove it from history if needed, move secrets to environment variables or a secrets manager, add a deny rule and ignore pattern, and check access logs', 'Correct. Treat the key as compromised first. Cleanup comes after rotation.'),
+        o('Wait to see whether anyone notices', 'Leaked keys are often scraped within minutes.'),
+      ],
+      answer: 2,
+    },
+    {
+      id: 'f21',
+      module: 'm7',
+      scenario: 'The project test suite is green, and Claude says "all done, production ready". You are about to release a payments change tomorrow.',
+      q: 'Which additional check matters most?',
+      options: [
+        o('Trust the green suite; it passed', 'Green only means the tests that exist pass. Check what they cover.'),
+        o('Review coverage of the risky paths (failures, retries, duplicate requests, refunds), run /security-review and a human code review, test in a staging environment, and confirm rollback and monitoring', 'Correct. Production readiness covers failure modes, security, observability and rollback, not only passing tests.'),
+        o('Ask Claude to add more tests until it says it is confident', 'Confidence statements are not evidence. Focus on meaningful risk coverage.'),
+        o('Release on a Friday evening to minimise users affected', 'Poor timing for a risky release. Rollback readiness matters more than the hour.'),
+      ],
+      answer: 1,
+    },
+    // ---------------- m8: FDE mindset ----------------
+    {
+      id: 'f22',
+      module: 'm8',
+      scenario: 'A client says "build us a chatbot for HR questions". Three conversations later you learn that 70 percent of questions are about two policies that live in scattered PDFs.',
+      q: 'What is the best next step?',
+      options: [
+        o('Build the full chatbot as requested', 'May be right, but you have learned the problem is findability of two policies. A smaller first slice could solve it.'),
+        o('Index all company documents to be future proof', 'Scope growth without evidence of need.'),
+        o('Tell the client the chatbot idea is wrong', 'Premature. The chatbot may still be the right shape; show evidence and options.'),
+        o('Propose a thin first slice (search or Q and A over those two policies), agree acceptance criteria and a measure, and show it to HR staff early', 'Correct. It targets the real problem, limits risk, and creates early feedback.'),
+      ],
+      answer: 3,
+    },
+    {
+      id: 'f23',
+      module: 'm8',
+      scenario: 'At the demo of your prototype, the sponsor praises it, but the daily users say little. The data in the demo came from a sample file, not the live system.',
+      q: 'What should you do before committing to a build plan?',
+      options: [
+        o('Commit to the plan; the sponsor approved', 'Sponsor approval does not validate adoption or the live data integration.'),
+        o('Add more features to impress the users', 'Features do not answer whether the core idea works.'),
+        o('Run a short task based session with the real users, state clearly that data was sampled, and test the live integration as the top risk', 'Correct. Watch real tasks, and reduce the biggest unverified assumption before investing more.'),
+        o('Ask Claude to predict what users will say', 'Predictions are not user evidence.'),
+      ],
+      answer: 2,
+    },
+    {
+      id: 'f24',
+      module: 'm8',
+      scenario: 'Your solution is live and Claude wrote most of the code. A month later a bug causes incorrect invoices, and the client asks who is responsible.',
+      q: 'How should an FDE respond?',
+      options: [
+        o('Take ownership: fix and communicate quickly, correct affected invoices, add the missing test and monitoring, and share what you changed in the process', 'Correct. Ownership means responsibility for the outcome and improving the system.'),
+        o('Explain that the AI wrote it, so the model is at fault', 'Not accepted professionally. You reviewed, shipped and own the solution.'),
+        o('Blame the client for unclear requirements', 'Even if requirements were weak, discovery and validation are part of your role.'),
+        o('Remove the feature and say it is out of scope', 'Avoids the incident and damages trust.'),
+      ],
+      answer: 0,
+    },
+  ],
+  practical: [
+    {
+      id: 'p1',
+      title: 'Set up a repo with CLAUDE.md and plan a feature',
+      brief:
+        'Create a small repository (any language) for a simple app such as a task tracker. Set it up for Claude Code, then use plan mode to plan a new feature (for example "mark tasks overdue and send a daily digest"). Do not implement the feature; the focus is setup and planning quality.',
+      criteria: [
+        'CLAUDE.md exists with real build, test and run commands, key conventions and at most about 200 lines',
+        'CLAUDE.md contains no secrets and avoids vague or contradictory rules',
+        'Plan was produced in plan mode (claude --permission-mode plan, Shift+Tab or /plan) and no source files were edited',
+        'The plan lists affected files, a smaller first milestone, tests to write and open questions',
+        'At least one protective measure is configured, such as a permission deny rule for .env or a PreToolUse hook, with a note on why',
+      ],
+    },
+    {
+      id: 'p2',
+      title: 'Review a flawed AI generated endpoint',
+      brief:
+        'Take (or have Claude write) a small endpoint that creates and fetches orders, then review it as if you were the reviewer. Look for security, correctness and production readiness issues. Write a review with findings ranked by severity, then fix the top issues and add tests that prove the fixes.',
+      criteria: [
+        'Identifies at least three real issues from categories such as injection, missing authorisation, excessive data exposure, missing validation and poor error handling',
+        'Findings are ranked by severity with a short explanation of the impact of each',
+        'Fixes are applied for the top issues and each is covered by a test that fails before and passes after',
+        'You judged any automated review output (for example /security-review) individually and noted any false positives',
+        'A short production readiness note covers secrets, logging, rate limits and rollback',
+      ],
+    },
+    {
+      id: 'p3',
+      title: 'Design a solution for a vague client brief',
+      brief:
+        'Brief: "Our field technicians waste time on paperwork. Can you use AI to fix it? We would like to see something in three weeks." Produce a solution design pack and a first slice plan. Use Claude as a thinking partner but do not invent client facts.',
+      criteria: [
+        'Discovery questions cover users, workflow today, data and systems, constraints, success measure and prior attempts',
+        'Problem statement and assumption log separate known facts from guesses and give a cheap check for each assumption',
+        'Two or three genuinely different options are compared with tradeoffs, and one is chosen in a short decision record with a revisit trigger',
+        'First slice has testable acceptance criteria, labels what would be simulated, and fits the three week horizon',
+        'Validation plan names real users, realistic tasks, specific questions and a decision rule, and the handover or ownership plan is outlined',
+      ],
+    },
+  ],
+};
