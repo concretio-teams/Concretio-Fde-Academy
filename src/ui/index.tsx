@@ -147,10 +147,19 @@ export function Rich({ md }: { md: string }) {
   for (const para of md.trim().split(/\n\s*\n/)) {
     const lines = para.split('\n');
     let k = 0;
+    const heading = /^#{1,4}\s+/;
+    const kindOf = (l: string) => (heading.test(l) ? 'h' : ul.test(l) ? 'ul' : ol.test(l) ? 'ol' : 'p');
     while (k < lines.length) {
-      const kind = ul.test(lines[k]) ? 'ul' : ol.test(lines[k]) ? 'ol' : 'p';
+      const kind = kindOf(lines[k]);
+      if (kind === 'h') {
+        // Markdown style heading inside lesson text, for example "## What an LLM really is"
+        const level = (/^#+/.exec(lines[k]) as RegExpExecArray)[0].length;
+        const text = lines[k++].replace(heading, '');
+        out.push(level >= 3 ? <h4 key={out.length} className="rich-h">{text}</h4> : <h3 key={out.length} className="rich-h">{text}</h3>);
+        continue;
+      }
       const grp: string[] = [];
-      while (k < lines.length && (ul.test(lines[k]) ? 'ul' : ol.test(lines[k]) ? 'ol' : 'p') === kind) grp.push(lines[k++]);
+      while (k < lines.length && kindOf(lines[k]) === kind) grp.push(lines[k++]);
       const key = out.length;
       if (kind === 'p') out.push(<p key={key}><Inline s={grp.join(' ')} /></p>);
       else {

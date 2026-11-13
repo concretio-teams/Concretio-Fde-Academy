@@ -28,7 +28,7 @@ export function PlaygroundPage({ id }: { id?: string }) {
         ))}
       </div>
       {list.length === 0 ? <p className="muted">No exercises in this category yet.</p> : (
-        <div className="grid" style={{ gridTemplateColumns: 'minmax(220px, 300px) 1fr', alignItems: 'start' }}>
+        <div className="grid playgrid">
           <div className="stack" style={{ gap: 6 }}>
             {list.map((e) => (
               <button key={e.exercise.id} className={`opt ${cur?.exercise.id === e.exercise.id ? 'sel' : ''}`} style={{ margin: 0 }} onClick={() => setSel(e.exercise.id)}>
