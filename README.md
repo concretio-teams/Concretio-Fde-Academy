@@ -4,10 +4,14 @@ Interactive, self-paced academy that turns developers into confident AI-assisted
 
 ## What is inside
 
-- 8 modules, 23 lessons, 142 scenario based quiz questions
-- 31 playground exercises (pick the command, order the workflow, fix the prompt, find the vulnerability)
+- 8 modules, 24 lessons, 148 scenario based quiz questions (plus 24 in the final exam)
+- 32 playground exercises (pick the command, order the workflow, fix the prompt, find the vulnerability)
 - 12 practical assignments and a final assessment (theory exam plus practical tasks)
 - Click-to-explore Mermaid diagrams, click-to-learn concepts, prompt builder, simulated Claude Code interface
+- **Start here page:** three starting levels (new, uses AI assistants, already uses Claude Code) so nobody has to guess where to begin. Each lesson opens with a one sentence "In short" summary, and the path shows honest time estimates.
+- **Glossary:** every term used in the lessons, searchable, in plain language.
+- **Starter project:** `starters/shop-app` is a small dependency free app with five seeded bugs, used by the Module 2, 4 and 6 assignments (`BUG_REPORTS.md` for learners, `ANSWERS.md` for the answer key).
+- **Mentor summary:** every assignment can copy a short progress summary to paste to a mentor.
 - **Accounts:** sign up or sign in to save progress to your account and continue on any device. Guests keep working with browser-only saving, and guest progress is merged into the account on first sign-in.
 - **Global search:** `Ctrl/Cmd + K` or `/` searches lessons, concepts, exercises, assignments and resources.
 - **Easy journey:** the sidebar always shows the single best next step. Press `C` to continue from anywhere.
@@ -65,6 +69,7 @@ The API runs as one serverless function (`api/index.ts`); `/api/*` is rewritten 
 - `server/` : Express API (`app.ts`), storage (`store.ts`), standalone server (`index.ts`); `api/index.ts` is the Vercel entry
 - `shared/progress.ts` : progress shape and merge logic used by both browser and server
 - `CONTENT_GUIDE.md` : rules for writing and verifying content
+- `public/brand/` : Concretio logo and balloon icon (taken from concret.io). Brand colors and the Poppins font are set at the top of `src/styles.css`. Swap the files here if marketing supplies official assets.
 
 ## Notes
 

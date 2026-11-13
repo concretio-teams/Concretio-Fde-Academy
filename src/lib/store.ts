@@ -2,8 +2,8 @@ import { useSyncExternalStore } from 'react';
 
 const KEY = 'cca-progress-v1';
 
-import { emptyProgress, sanitize, type AssignmentState, type FinalState, type ProgressData, type QuizResult } from '../../shared/progress';
-export type { AssignmentState, FinalState, QuizResult };
+import { emptyProgress, sanitize, type AssignmentState, type FinalState, type ProgressData, type QuizResult, type Track } from '../../shared/progress';
+export type { AssignmentState, FinalState, QuizResult, Track };
 export type Progress = ProgressData;
 
 const prefersDark = typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches;
@@ -49,6 +49,7 @@ export function useProgress(): Progress {
 
 export const actions = {
   setTheme(theme: 'light' | 'dark') { commit({ ...state, theme }); },
+  setTrack(track: Track | null) { commit({ ...state, track }); },
   viewLesson(id: string, title: string) {
     const first = !state.lessonsViewed[id];
     commit({ ...state, lessonsViewed: { ...state.lessonsViewed, [id]: Date.now() } }, first ? `Started lesson: ${title}` : undefined);
@@ -75,7 +76,7 @@ export const actions = {
   toggleCheck(id: string, idx: number) {
     const a = state.assignments[id] ?? { checked: [], done: false, notes: '' };
     const checked = a.checked.includes(idx) ? a.checked.filter((i) => i !== idx) : [...a.checked, idx];
-    commit({ ...state, assignments: { ...state.assignments, [id]: { ...a, checked, done: a.done && false } } });
+    commit({ ...state, assignments: { ...state.assignments, [id]: { ...a, checked, done: a.done && !a.checked.includes(idx) } } });
   },
   setNotes(id: string, notes: string) {
     const a = state.assignments[id] ?? { checked: [], done: false, notes: '' };
@@ -100,7 +101,7 @@ export const actions = {
     commit(
       {
         ...state,
-        final: { score, total, passed, at: Date.now(), attempts: (prev?.attempts ?? 0) + 1, practical: {} },
+        final: { score, total, passed, at: Date.now(), attempts: (prev?.attempts ?? 0) + 1 },
       },
       `Final assessment theory: ${score}/${total} (${pct}%)`,
     );

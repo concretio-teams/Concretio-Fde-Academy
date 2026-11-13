@@ -2,9 +2,10 @@ import { useEffect } from 'react';
 import { nextAction } from '../lib/stats';
 import { allLessons, lessonById, moduleById, modules, nextLessonAfter } from '../content';
 import { BlockView } from '../components/Blocks';
+import { GoDeeper } from '../components/GoDeeper';
 import { Quiz } from '../components/Quiz';
 import { href } from '../lib/router';
-import { lessonDone, moduleStats, unmetRequirements } from '../lib/stats';
+import { hours, lessonDone, moduleStats, startNumber, totalMinutes, unmetRequirements } from '../lib/stats';
 import { actions, useProgress } from '../lib/store';
 import { Badge, Button, Card, LinkButton, PageHead, Progress, Rich } from '../ui';
 
@@ -14,11 +15,13 @@ export function PathPage() {
     <>
       <PageHead kicker="Learning path" title="Eight modules, one direction">
         Work top to bottom. Each module builds on the ones before it; the path shows what to finish first.
+        Total time: {hours(totalMinutes().lessons + totalMinutes().assignments)}. Not sure where to begin? Try the <a href={href('start')}>Start here</a> page.
       </PageHead>
       <div className="stack">
         {modules.map((m) => {
           const s = moduleStats(p, m);
           const unmet = unmetRequirements(p, m);
+          const mins = m.lessons.reduce((a, l) => a + l.minutes, 0) + m.assignments.reduce((a, x) => a + (x.minutes ?? 0), 0);
           return (
             <div key={m.id} className={`card mod ${s.complete ? 'done' : s.started ? 'active' : ''}`}>
               <div className="row" style={{ alignItems: 'flex-start', gap: 14 }}>
@@ -26,7 +29,7 @@ export function PathPage() {
                 <div style={{ flex: 1, minWidth: 240 }}>
                   <div className="row spread">
                     <h2 style={{ margin: 0 }}>{m.title}</h2>
-                    <div className="row"><Badge tone="accent">{m.level}</Badge>{s.complete && <Badge tone="ok">Complete</Badge>}</div>
+                    <div className="row">{p.track && m.number === startNumber(p) && <Badge tone="ok">Your starting point</Badge>}<Badge tone="accent">{m.level}</Badge><Badge>{hours(mins)}</Badge>{s.complete && <Badge tone="ok">Complete</Badge>}</div>
                   </div>
                   <p className="muted">{m.tagline}</p>
                   {m.requires.length > 0 && (
@@ -82,11 +85,13 @@ export function LessonPage({ id, scrollToQuiz }: { id: string; scrollToQuiz?: bo
         {done && <Badge tone="ok">Completed</Badge>}
         {q && <Badge>Best quiz {q.best}/{q.total}</Badge>}
       </div>
+      {lesson.summary && <div className="insight"><b>In short:</b> {lesson.summary}</div>}
       <Card>
         <b>By the end of this lesson you can:</b>
         <ul style={{ margin: '6px 0 0' }}>{lesson.objectives.map((o) => <li key={o}>{o}</li>)}</ul>
       </Card>
       {lesson.blocks.map((b, i) => <BlockView key={i} block={b} />)}
+      <GoDeeper lessonId={lesson.id} />
       <div className="block" id="quiz">
         <h2>Knowledge check</h2>
         <p className="muted">{lesson.quiz.length} questions. Reach 70% to complete this lesson. Retry as often as you like.</p>

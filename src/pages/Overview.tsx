@@ -36,10 +36,13 @@ export function Dashboard() {
       <div className="hero row" style={{ gap: 24, marginBottom: 20 }}>
         <Ring value={o.pct} label="complete" />
         <div style={{ flex: 1, minWidth: 240 }}>
-          <div className="kicker">Claude Code Academy</div>
+          <div className="kicker">Concretio FDE Academy</div>
           <h1>{o.done === 0 ? 'Welcome. Start your first lesson.' : 'Keep going, you are making progress.'}</h1>
           <p className="muted">From AI coding tool user to confident AI-assisted engineer. {allLessons.length} lessons, {allExercises.length} exercises, {allAssignments.length} assignments and a final assessment.</p>
-          <LinkButton variant="primary" href={next.href}>{next.label}</LinkButton>
+          <div className="row">
+            <LinkButton variant="primary" href={next.href}>{next.label}</LinkButton>
+            {!p.track && o.done === 0 && <LinkButton href={href('start')}>New here? Find your starting point</LinkButton>}
+          </div>
           <div className="small muted" style={{ marginTop: 6 }}>{next.why} Press <kbd>C</kbd> anytime to continue.</div>
         </div>
       </div>

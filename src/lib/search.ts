@@ -22,12 +22,14 @@ const bodyOf = (v: unknown) => { const out: string[] = []; collect(v, out); retu
 let index: Entry[] | null = null;
 
 export const PAGES: [string, string, string][] = [
+  ['start', 'Start here', 'Pick your level and see how the academy works'],
   ['', 'Dashboard', 'Progress, next step and achievements'],
   ['path', 'Learning path', 'All modules and their order'],
   ['playground', 'Playground', 'Hands-on exercises'],
   ['knowledge', 'Knowledge check', 'Quizzes and scores'],
   ['assignments', 'Assignments', 'Practical challenges'],
   ['resources', 'Resources', 'Curated free resources'],
+  ['glossary', 'Glossary', 'Every term in plain language'],
   ['final', 'Final assessment', 'Theory exam and practical tasks'],
   ['progress', 'My progress', 'Skills, scores and history'],
 ];

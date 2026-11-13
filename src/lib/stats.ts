@@ -1,6 +1,7 @@
 import { allLessons, allAssignments, modules } from '../content';
 import type { Lesson, Module } from '../content/types';
 import type { Progress } from './store';
+import { TRACKS } from './tracks';
 
 export const LESSON_PASS_PCT = 70;
 
@@ -56,6 +57,22 @@ export function skillLevels(p: Progress): { skill: string; pct: number; level: s
   });
 }
 
+/** Module number a learner starts from, based on the level they picked on the Start page. */
+export function startNumber(p: Progress): number {
+  const t = TRACKS.find((x) => x.id === p.track);
+  return modules.find((m) => m.id === t?.startModule)?.number ?? 0;
+}
+
+/** Honest total time: reading time of lessons plus estimated assignment effort, in minutes. */
+export function totalMinutes(): { lessons: number; assignments: number } {
+  return {
+    lessons: allLessons.reduce((a, x) => a + x.lesson.minutes, 0),
+    assignments: allAssignments.reduce((a, x) => a + (x.assignment.minutes ?? 0), 0),
+  };
+}
+
+export const hours = (min: number) => (min < 90 ? `${min} min` : `about ${Math.round(min / 6) / 10} hours`);
+
 export function recommended(p: Progress) {
   // first lesson not done whose module prerequisites are satisfied (or any first not done)
   for (const x of allLessons) {
@@ -69,7 +86,9 @@ export interface NextAction { label: string; why: string; href: string; step: 'L
 
 /** The single best next thing to do, module by module: lesson, then its quiz, then its assignment, finally the exam. */
 export function nextAction(p: Progress): NextAction {
+  const from = startNumber(p);
   for (const m of modules) {
+    if (m.number < from) continue; // learner chose a later starting point on the Start page
     for (const l of m.lessons) {
       if (lessonDone(p, l)) continue;
       const q = p.quiz[l.id];

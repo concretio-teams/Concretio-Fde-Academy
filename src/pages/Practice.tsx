@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { allAssignments, allExercises, assignmentById, finalAssessment, resources } from '../content';
+import { allAssignments, allExercises, assignmentById, finalAssessment, lessonById, moduleById, modules, resources } from '../content';
+import { ResourceItem } from '../components/GoDeeper';
 import { ExerciseView } from '../components/Exercises';
 import { Quiz, shuffle } from '../components/Quiz';
 import { href } from '../lib/router';
 import { actions, useProgress } from '../lib/store';
-import { Badge, Button, Card, LinkButton, PageHead, Progress, Rich } from '../ui';
+import { Badge, Button, Card, CopyButton, LinkButton, PageHead, Progress, Rich } from '../ui';
 
 const CATS: Record<string, string> = { all: 'All', command: 'Commands', workflow: 'Workflows', prompt: 'Prompts', security: 'Security', approach: 'Approach' };
 
@@ -43,6 +44,24 @@ export function PlaygroundPage({ id }: { id?: string }) {
   );
 }
 
+function mentorSummary(a: { title: string; checklist: string[] }, moduleNo: number, st: { checked: number[]; done: boolean; notes: string }): string {
+  const ticked = a.checklist.filter((_, i) => st.checked.includes(i));
+  const open = a.checklist.filter((_, i) => !st.checked.includes(i));
+  return [
+    `Assignment: ${a.title} (Module ${moduleNo})`,
+    `Status: ${st.done ? 'marked complete' : 'in progress'}, ${ticked.length}/${a.checklist.length} criteria ticked`,
+    '',
+    'Criteria I can show:',
+    ...(ticked.length ? ticked.map((c) => `- ${c}`) : ['- none yet']),
+    '',
+    'Criteria still open:',
+    ...(open.length ? open.map((c) => `- ${c}`) : ['- none']),
+    '',
+    'My notes and links:',
+    st.notes.trim() || '(nothing added)',
+  ].join(String.fromCharCode(10));
+}
+
 export function AssignmentsPage({ id }: { id?: string }) {
   const p = useProgress();
   const f = id ? assignmentById(id) : undefined;
@@ -55,6 +74,16 @@ export function AssignmentsPage({ id }: { id?: string }) {
       <>
         <div className="small muted"><a href={href('assignments')}>Assignments</a> / Module {m.number}</div>
         <PageHead kicker="Practical assignment" title={a.title} />
+        <div className="row" style={{ marginBottom: 12 }}>
+          {a.minutes && <Badge>About {a.minutes} min</Badge>}
+          <Badge tone="accent">Module {m.number}: {m.title}</Badge>
+        </div>
+        {a.starter && (
+          <div className="callout tip" style={{ marginBottom: 12 }}>
+            <div className="ct">Starter project provided</div>
+            Use the <code>{a.starter}</code> folder in the academy repository. Copy it out of the repo before you start, and read its README.
+          </div>
+        )}
         <Card><Rich md={a.brief} /></Card>
         <div className="block"><h3>Steps</h3><Rich md={a.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')} /></div>
         <div className="callout info"><div className="ct">Deliverable</div>{a.deliverable}</div>
@@ -75,6 +104,7 @@ export function AssignmentsPage({ id }: { id?: string }) {
               ? <><Badge tone="ok">Completed</Badge><Button onClick={() => actions.completeAssignment(a.id, a.title, false)}>Reopen</Button></>
               : <Button variant="primary" disabled={!all} onClick={() => actions.completeAssignment(a.id, a.title, true)}>Mark assignment complete</Button>}
             {!all && <span className="small muted">{st.checked.length}/{a.checklist.length} criteria ticked</span>}
+            <CopyButton className="btn sm" text={mentorSummary(a, m.number, st)} label="Copy summary for your mentor" />
           </div>
         </div>
       </>
@@ -91,7 +121,7 @@ export function AssignmentsPage({ id }: { id?: string }) {
             <Card key={a.id} onClick={() => { window.location.hash = href('assignments', a.id); }}>
               <div className="row spread"><span className="kicker">Module {m.number}</span>{st?.done ? <Badge tone="ok">Done</Badge> : st?.checked.length ? <Badge tone="warn">In progress</Badge> : <Badge>Not started</Badge>}</div>
               <h3>{a.title}</h3>
-              <div className="small muted">{a.deliverable}</div>
+              <div className="small muted">{a.minutes ? `About ${a.minutes} min. ` : ''}{a.deliverable}</div>
               <div style={{ marginTop: 8 }}><Progress value={st ? Math.round((st.checked.length / a.checklist.length) * 100) : 0} /></div>
             </Card>
           );
@@ -101,25 +131,59 @@ export function AssignmentsPage({ id }: { id?: string }) {
   );
 }
 
+const LEVEL_OF: Record<string, string> = { Foundation: 'Beginner', Core: 'Intermediate', Advanced: 'Advanced', Professional: 'Advanced' };
+const FORMATS: [string, string][] = [['all', 'Everything'], ['watch', 'Watch or take a course'], ['read', 'Read']];
+const LEVELS_F: [string, string][] = [['all', 'Any level'], ['Beginner', 'Beginner'], ['Intermediate', 'Intermediate'], ['Advanced', 'Advanced']];
+const NEW_HERE = ['res-course-claude-101', 'res-quickstart', 'res-video-mastering'];
+
 export function ResourcesPage() {
+  const [fmt, setFmt] = useState('all');
+  const [level, setLevel] = useState('all');
   const total = resources.reduce((a, r) => a + r.minutes, 0);
+  const primary = (r: (typeof resources)[number]) => lessonById(r.lessons?.[0] ?? '')?.module ?? moduleById(r.modules[0]);
+  const shown = resources.filter((r) => {
+    const watch = r.type === 'Video' || r.type === 'Course';
+    if (fmt === 'watch' && !watch) return false;
+    if (fmt === 'read' && watch) return false;
+    const m = primary(r);
+    return level === 'all' || (m ? LEVEL_OF[m.level] === level : false);
+  });
+  const starters = resources.filter((r) => NEW_HERE.includes(r.id));
   return (
     <>
-      <PageHead kicker="Resources" title="A short, curated list">
-        {resources.length} free resources, about {Math.round(total / 6) / 10} hours in total. The academy teaches; these supplement it.
+      <PageHead kicker="Resources" title="Find the right video or doc">
+        {resources.length} free resources, about {Math.round(total / 6) / 10} hours in total. Every lesson also lists its own picks under <b>Go deeper</b>. Here is everything, grouped by module.
       </PageHead>
       {resources.length === 0 && <p className="muted">Resources are being verified.</p>}
-      <div className="grid c2">
-        {resources.map((r) => (
-          <Card key={r.id}>
-            <div className="row spread"><Badge tone="accent">{r.type}</Badge><span className="small muted">~{r.minutes} min, free</span></div>
-            <h3 style={{ marginTop: 8 }}>{r.title}</h3>
-            <p>{r.learn}</p>
-            <div className="small muted" style={{ marginBottom: 10 }}>Supports: {r.modules.map((x) => x.toUpperCase()).join(', ')}. Link checked {r.verified}.</div>
-            <a className="btn primary" href={r.url} target="_blank" rel="noreferrer">Open resource</a>
-          </Card>
-        ))}
+      {fmt === 'all' && level === 'all' && starters.length > 0 && (
+        <div className="callout tip" style={{ marginBottom: 18 }}>
+          <div className="ct">New here? Start with one of these</div>
+          <div className="stack" style={{ gap: 8, marginTop: 8 }}>{starters.map((r) => <ResourceItem key={r.id} r={r} />)}</div>
+        </div>
+      )}
+      <div className="row" style={{ marginBottom: 8 }}>
+        {FORMATS.map(([k, v]) => <button key={k} className={`step ${fmt === k ? 'on' : ''}`} onClick={() => setFmt(k)}>{v}</button>)}
       </div>
+      <div className="row" style={{ marginBottom: 18 }}>
+        {LEVELS_F.map(([k, v]) => <button key={k} className={`step ${level === k ? 'on' : ''}`} onClick={() => setLevel(k)}>{v}</button>)}
+      </div>
+      {shown.length === 0 && <p className="muted">Nothing matches those filters. Try Everything or Any level.</p>}
+      {modules.map((m) => {
+        const items = shown.filter((r) => primary(r)?.id === m.id);
+        if (items.length === 0) return null;
+        return (
+          <section key={m.id} style={{ marginBottom: 22 }}>
+            <div className="row spread">
+              <h2 style={{ margin: 0 }}>Module {m.number}: {m.title}</h2>
+              <Badge tone="accent">{LEVEL_OF[m.level]}</Badge>
+            </div>
+            <div className="grid c2" style={{ marginTop: 10, alignItems: 'start' }}>
+              {items.map((r) => <ResourceItem key={r.id} r={r} showLessons />)}
+            </div>
+          </section>
+        );
+      })}
+      <p className="small muted">Links were checked on {resources[0]?.verified}. Anthropic renames pages often; tell us if one is broken.</p>
     </>
   );
 }
@@ -142,7 +206,7 @@ export function FinalPage() {
       {certified && (
         <div className="hero" style={{ marginBottom: 18 }}>
           <div className="kicker">Certified</div>
-          <h2>Claude Code Academy complete</h2>
+          <h2>Concretio FDE Academy complete</h2>
           <p>Theory {fin ? Math.round((fin.score / fin.total) * 100) : 0}% and all practical tasks done. You are ready to use Claude Code on client work.</p>
         </div>
       )}

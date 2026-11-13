@@ -1,6 +1,6 @@
 // Academy UI kit. Every page and block builds on these primitives only.
 // This is the single adapter layer: replacing these with Focus UI components later is a one-folder change.
-import { useState, useSyncExternalStore, type ReactNode, type ButtonHTMLAttributes } from 'react';
+import { useEffect, useState, useSyncExternalStore, type ReactNode, type ButtonHTMLAttributes } from 'react';
 import { conceptMap } from '../content';
 
 export function Button({ variant, size, className = '', ...p }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'ghost'; size?: 'sm' }) {
@@ -60,7 +60,7 @@ export function Tabs({ tabs }: { tabs: { label: string; content: ReactNode }[] }
   );
 }
 
-export function CopyButton({ text, className = 'copy' }: { text: string; className?: string }) {
+export function CopyButton({ text, className = 'copy', label = 'Copy' }: { text: string; className?: string; label?: string }) {
   const [ok, setOk] = useState(false);
   return (
     <button
@@ -68,7 +68,7 @@ export function CopyButton({ text, className = 'copy' }: { text: string; classNa
       onClick={() => {
         navigator.clipboard?.writeText(text).then(() => { setOk(true); setTimeout(() => setOk(false), 1200); }).catch(() => undefined);
       }}
-    >{ok ? 'Copied' : 'Copy'}</button>
+    >{ok ? 'Copied' : label}</button>
   );
 }
 
@@ -88,6 +88,12 @@ export const showConcept = (id: string | null) => { openConcept = id; csubs.forE
 
 export function ConceptDrawer() {
   const id = useSyncExternalStore((cb) => { csubs.add(cb); return () => { csubs.delete(cb); }; }, () => openConcept);
+  useEffect(() => {
+    if (!id) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') showConcept(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [id]);
   if (!id) return null;
   const c = conceptMap[id];
   if (!c) return null;

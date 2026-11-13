@@ -5,10 +5,11 @@ export interface QuizResult { best: number; last: number; total: number; attempt
 export interface AssignmentState { checked: number[]; done: boolean; notes: string; at?: number }
 export interface FinalState {
   score: number; total: number; passed: boolean; at: number; attempts: number;
-  practical: Record<string, number[]>;
 }
+export type Track = 'new' | 'some' | 'pro';
 export interface ProgressData {
   theme: 'light' | 'dark';
+  track: Track | null; // starting level picked on the Start page
   lessonsViewed: Record<string, number>;
   lessonsManual: Record<string, boolean>;
   quiz: Record<string, QuizResult>;
@@ -21,7 +22,7 @@ export interface ProgressData {
 }
 
 export const emptyProgress = (theme: 'light' | 'dark' = 'light'): ProgressData => ({
-  theme, lessonsViewed: {}, lessonsManual: {}, quiz: {}, exercises: {}, assignments: {},
+  theme, track: null, lessonsViewed: {}, lessonsManual: {}, quiz: {}, exercises: {}, assignments: {},
   final: null, finalPractical: {}, days: [], history: [],
 });
 
@@ -35,6 +36,7 @@ export function sanitize(input: unknown): ProgressData {
   const rec = (v: unknown) => (isObj(v) ? v : {});
   return {
     theme: input.theme === 'dark' ? 'dark' : 'light',
+    track: input.track === 'new' || input.track === 'some' || input.track === 'pro' ? input.track : null,
     lessonsViewed: rec(input.lessonsViewed),
     lessonsManual: rec(input.lessonsManual),
     quiz: rec(input.quiz) as ProgressData['quiz'],
@@ -50,6 +52,7 @@ export function sanitize(input: unknown): ProgressData {
 /** Merge two progress records without losing anything either side has earned. */
 export function mergeProgress(a: ProgressData, b: ProgressData): ProgressData {
   const out = emptyProgress(a.theme);
+  out.track = a.track ?? b.track;
   for (const k of new Set([...Object.keys(a.lessonsViewed), ...Object.keys(b.lessonsViewed)]))
     out.lessonsViewed[k] = Math.min(a.lessonsViewed[k] ?? Infinity, b.lessonsViewed[k] ?? Infinity);
   for (const k of new Set([...Object.keys(a.lessonsManual), ...Object.keys(b.lessonsManual)]))
