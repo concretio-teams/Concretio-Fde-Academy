@@ -59,6 +59,9 @@ export function PlaygroundPage({ id }: { id?: string }) {
   );
 }
 
+const REPO_URL = 'https://github.com/concretio-teams/Concretio-Fde-Academy';
+const MIN_EVIDENCE = 20; // characters of notes or a link needed before an assignment can be marked complete
+
 function mentorSummary(a: { title: string; checklist: string[] }, moduleNo: number, st: { checked: number[]; done: boolean; notes: string }): string {
   const ticked = a.checklist.filter((_, i) => st.checked.includes(i));
   const open = a.checklist.filter((_, i) => !st.checked.includes(i));
@@ -85,6 +88,7 @@ export function AssignmentsPage({ id }: { id?: string }) {
     const { assignment: a, module: m } = f;
     const st = p.assignments[a.id] ?? { checked: [], done: false, notes: '' };
     const all = st.checked.length === a.checklist.length;
+    const hasEvidence = st.notes.trim().length >= MIN_EVIDENCE;
     return (
       <>
         <div className="small muted"><a href={href('assignments')}>Assignments</a> / Module {m.number}</div>
@@ -96,16 +100,18 @@ export function AssignmentsPage({ id }: { id?: string }) {
         {a.starter && (
           <div className="callout tip" style={{ marginBottom: 12 }}>
             <div className="ct">Starter project provided</div>
-            Use the <code>{a.starter}</code> folder in the academy repository. Copy it out of the repo before you start, and read its README.
+            <p style={{ margin: '4px 0' }}>Open the <a href={`${REPO_URL}/tree/main/${a.starter}`} target="_blank" rel="noreferrer"><code>{a.starter}</code> folder on GitHub</a>. Copy it out of the repo before you start, and read its README first.</p>
+            <p className="small muted" style={{ margin: 0 }}>To get it: <code>git clone {REPO_URL}.git</code>, then copy the folder somewhere of your own. It needs Node 18 or newer and has no packages to install.</p>
           </div>
         )}
         <Card><Rich md={a.brief} /></Card>
         <div className="block"><h3>Steps</h3><Rich md={a.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')} /></div>
+        {a.example && <details className="block"><summary><b>See an example of a good result</b></summary><Rich md={a.example} /></details>}
         <div className="callout info"><div className="ct">Deliverable</div>{a.deliverable}</div>
         {a.hint && <details className="block"><summary><b>Need a hint?</b></summary><Rich md={a.hint} /></details>}
         <div className="block card">
           <h3>Self-assessment</h3>
-          <p className="muted small">Tick each criterion only when you can honestly show it in your work.</p>
+          <p className="muted small">Tick each criterion only when you can honestly show it in your work. To finish, paste your deliverable or a link to it in the notes below. That is the evidence a mentor reads.</p>
           {a.checklist.map((c, i) => (
             <label key={i} className="checkrow">
               <input type="checkbox" checked={st.checked.includes(i)} onChange={() => actions.toggleCheck(a.id, i)} />
@@ -113,12 +119,13 @@ export function AssignmentsPage({ id }: { id?: string }) {
             </label>
           ))}
           <h3 style={{ marginTop: 14 }}>Your notes</h3>
-          <textarea value={st.notes} placeholder="Paste your prompts, commands, learnings or a link to your repo..." onChange={(e) => actions.setNotes(a.id, e.target.value)} />
+          <textarea value={st.notes} placeholder="Paste your deliverable, or a link to it (repo, document, gist). Add the prompts you used and what you learned." onChange={(e) => actions.setNotes(a.id, e.target.value)} />
           <div className="row" style={{ marginTop: 12 }}>
             {st.done
               ? <><Badge tone="ok">Completed</Badge><Button onClick={() => actions.completeAssignment(a.id, a.title, false)}>Reopen</Button></>
-              : <Button variant="primary" disabled={!all} onClick={() => actions.completeAssignment(a.id, a.title, true)}>Mark assignment complete</Button>}
-            {!all && <span className="small muted">{st.checked.length}/{a.checklist.length} criteria ticked</span>}
+              : <Button variant="primary" disabled={!all || !hasEvidence} onClick={() => actions.completeAssignment(a.id, a.title, true)}>Mark assignment complete</Button>}
+            {!st.done && !all && <span className="small muted">{st.checked.length}/{a.checklist.length} criteria ticked</span>}
+            {!st.done && all && !hasEvidence && <span className="small muted">Add your deliverable or a link in the notes to finish</span>}
             <CopyButton className="btn sm" text={mentorSummary(a, m.number, st)} label="Copy summary for your mentor" />
           </div>
         </div>

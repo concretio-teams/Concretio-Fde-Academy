@@ -1,0 +1,11 @@
+{
+  "name": "task-tracker-starter",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Small task tracker API used by the Concretio FDE Academy Module 3 assignment. No dependencies, Node 18+.",
+  "scripts": {
+    "test": "node --test",
+    "start": "node src/server.js"
+  }
+}

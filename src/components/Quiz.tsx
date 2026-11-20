@@ -8,6 +8,9 @@ export function shuffle<T>(a: T[]): T[] {
   return r;
 }
 
+/** The UI already says "Correct." in front of the explanation, so drop a leading "Correct." from the text itself. */
+const plainWhy = (s: string) => s.replace(/^\s*Correct[.:,]?\s+/i, '');
+
 interface Props {
   questions: Question[];
   mode?: 'immediate' | 'exam';
@@ -49,7 +52,7 @@ export function Quiz({ questions, mode = 'immediate', passPct = 70, onFinish }: 
               {q.scenario && <div className="scn"><Rich md={q.scenario} /></div>}
               <Rich md={q.q} />
               {!ok && p !== null && <div className="small"><b>Your answer:</b> <Rich md={q.options[p].text} /><Rich md={q.options[p].why} /></div>}
-              <div className="small"><b>Correct:</b> <Rich md={q.options[q.answer].text} /><Rich md={q.options[q.answer].why} /></div>
+              <div className="small"><b>Correct:</b> <Rich md={q.options[q.answer].text} /><Rich md={plainWhy(q.options[q.answer].why)} /></div>
             </div>
           );
         })}
@@ -89,13 +92,13 @@ export function Quiz({ questions, mode = 'immediate', passPct = 70, onFinish }: 
           return (
             <button key={orig} className={`opt ${cls}`} onClick={() => pick(orig)} disabled={reveal}>
               <Rich md={o.text} />
-              {reveal && (orig === q.answer || orig === sel) && <div className="why"><b>{orig === q.answer ? 'Correct. ' : 'Not quite. '}</b><Rich md={o.why} /></div>}
+              {reveal && (orig === q.answer || orig === sel) && <div className="why"><b>{orig === q.answer ? 'Correct. ' : 'Not quite. '}</b><Rich md={orig === q.answer ? plainWhy(o.why) : o.why} /></div>}
             </button>
           );
         })}
-        {reveal && sel !== q.answer && <div className="feedback ok small"><b>Why the right answer works:</b> <Rich md={q.options[q.answer].why} /></div>}
         <div className="row" style={{ marginTop: 12 }}>
           <Button variant="primary" onClick={next} disabled={sel === null}>{idx + 1 >= total ? 'Finish' : 'Next'}</Button>
+          {sel === null && <span className="small muted">Pick an answer to continue</span>}
           {mode === 'exam' && idx > 0 && <Button onClick={() => { setIdx(idx - 1); }}>Back</Button>}
         </div>
       </div>

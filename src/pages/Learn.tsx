@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { nextAction } from '../lib/stats';
 import { allLessons, lessonById, moduleById, modules, nextLessonAfter } from '../content';
 import { BlockView } from '../components/Blocks';
@@ -11,6 +11,8 @@ import { Badge, Button, Card, LinkButton, PageHead, Progress, Rich } from '../ui
 
 export function PathPage() {
   const p = useProgress();
+  const nx = nextAction(p);
+  const isNext = (href: string) => nx.href === href || nx.href === `${href}/quiz`;
   return (
     <>
       <PageHead kicker="Learning path" title="Eight modules, one direction">
@@ -44,14 +46,14 @@ export function PathPage() {
                   </details>
                   <div className="stack" style={{ marginTop: 10, gap: 6 }}>
                     {m.lessons.map((l, i) => (
-                      <a key={l.id} href={href('lesson', l.id)} className="row spread" style={{ textDecoration: 'none', color: 'inherit', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 10 }}>
-                        <span>{lessonDone(p, l) ? '✓ ' : ''}Lesson {i + 1}: {l.title}</span>
+                      <a key={l.id} href={href('lesson', l.id)} className="row spread" style={{ textDecoration: 'none', color: 'inherit', padding: '8px 10px', border: '1px solid var(--border)', borderColor: isNext(`#/lesson/${l.id}`) ? 'var(--accent)' : 'var(--border)', borderRadius: 10 }}>
+                        <span>{lessonDone(p, l) ? '✓ ' : ''}Lesson {i + 1}: {l.title}{isNext(`#/lesson/${l.id}`) && <> <Badge tone="ok">Next</Badge></>}</span>
                         <span className="small muted">{l.minutes} min{p.quiz[l.id] ? `, quiz ${p.quiz[l.id].best}/${p.quiz[l.id].total}` : ''}</span>
                       </a>
                     ))}
                     {m.assignments.map((a) => (
                       <a key={a.id} href={href('assignments', a.id)} className="row spread" style={{ textDecoration: 'none', color: 'inherit', padding: '8px 10px', border: '1px dashed var(--border)', borderRadius: 10 }}>
-                        <span>{p.assignments[a.id]?.done ? '✓ ' : ''}Assignment: {a.title}</span>
+                        <span>{p.assignments[a.id]?.done ? '✓ ' : ''}Assignment: {a.title}{nx.href === `#/assignments/${a.id}` && <> <Badge tone="ok">Next</Badge></>}</span>
                         <span className="small muted">practical</span>
                       </a>
                     ))}
@@ -70,6 +72,15 @@ export function LessonPage({ id, scrollToQuiz }: { id: string; scrollToQuiz?: bo
   const p = useProgress();
   const found = lessonById(id);
   useEffect(() => { if (found) actions.viewLesson(found.lesson.id, found.lesson.title); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  // A list of the lesson's sections, built from its headings, so a long lesson is easy to move around in.
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const [outline, setOutline] = useState<{ id: string; text: string }[]>([]);
+  useEffect(() => {
+    const hs = Array.from(bodyRef.current?.querySelectorAll<HTMLElement>('h3.rich-h') ?? []);
+    hs.forEach((h, i) => { h.id = `sec-${i}`; });
+    setOutline(hs.map((h, i) => ({ id: `sec-${i}`, text: h.textContent ?? '' })));
+  }, [id]);
+  const jump = (target: string) => document.getElementById(target)?.scrollIntoView({ block: 'start' });
   useEffect(() => { if (scrollToQuiz) setTimeout(() => document.getElementById("quiz")?.scrollIntoView({ behavior: "smooth" }), 300); }, [scrollToQuiz, id]);
   if (!found) return <PageHead title="Lesson not found">Pick a lesson from the <a href={href('path')}>learning path</a>.</PageHead>;
   const { lesson, module: m, index } = found;
@@ -90,7 +101,16 @@ export function LessonPage({ id, scrollToQuiz }: { id: string; scrollToQuiz?: bo
         <b>By the end of this lesson you can:</b>
         <ul style={{ margin: '6px 0 0' }}>{lesson.objectives.map((o) => <li key={o}>{o}</li>)}</ul>
       </Card>
-      {lesson.blocks.map((b, i) => <BlockView key={i} block={b} />)}
+      <div className="row" style={{ margin: '12px 0 4px', alignItems: 'flex-start' }}>
+        <Button size="sm" onClick={() => jump('quiz')}>Skip to the quiz</Button>
+        {outline.length > 1 && (
+          <details className="outline">
+            <summary>In this lesson ({outline.length} sections)</summary>
+            <ol>{outline.map((o) => <li key={o.id}><button className="linklike" onClick={() => jump(o.id)}>{o.text}</button></li>)}</ol>
+          </details>
+        )}
+      </div>
+      <div ref={bodyRef}>{lesson.blocks.map((b, i) => <BlockView key={i} block={b} />)}</div>
       <GoDeeper lessonId={lesson.id} />
       <div className="block" id="quiz">
         <h2>Knowledge check</h2>
@@ -108,8 +128,8 @@ export function LessonPage({ id, scrollToQuiz }: { id: string; scrollToQuiz?: bo
         </div>); })()}
       <div className="row spread" style={{ marginTop: 24 }}>
         {index > 0 ? <LinkButton href={href('lesson', m.lessons[index - 1].id)}>Previous lesson</LinkButton> : <span />}
-        {next ? <LinkButton variant="primary" href={href('lesson', next.lesson.id)}>Next: {next.lesson.title}</LinkButton>
-          : <LinkButton variant="primary" href={href('final')}>Go to final assessment</LinkButton>}
+        {next ? <LinkButton href={href('lesson', next.lesson.id)}>Next: {next.lesson.title}</LinkButton>
+          : <LinkButton href={href('final')}>Go to final assessment</LinkButton>}
       </div>
     </>
   );
@@ -133,7 +153,7 @@ export function KnowledgePage({ lessonId }: { lessonId?: string }) {
   return (
     <>
       <PageHead kicker="Knowledge check" title="Test decisions, not definitions">
-        Every question is a realistic situation. Scores are tracked and you can retry any quiz.
+        Every lesson ends with its own quiz. Use this page to test out: pass a quiz (70%) and that lesson counts as done, even if you skip the reading. Scores are tracked and you can retry any quiz.
       </PageHead>
       <div className="row" style={{ marginBottom: 14 }}>
         <Badge tone="accent">{taken.length}/{allLessons.length} quizzes taken</Badge>

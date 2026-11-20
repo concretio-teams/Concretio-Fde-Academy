@@ -102,10 +102,11 @@ export function recommended(p: Progress) {
   return null;
 }
 
-export interface NextAction { label: string; why: string; href: string; step: 'Learn' | 'Practice' | 'Prove' }
+interface NextBase { label: string; why: string; href: string; step: 'Learn' | 'Practice' | 'Prove' }
+export interface NextAction extends NextBase { verb: string; target: string }
 
 /** The single best next thing to do, module by module: lesson, then its quiz, then its assignment, finally the exam. */
-export function nextAction(p: Progress): NextAction {
+function baseNext(p: Progress): NextBase {
   const from = startNumber(p);
   for (const m of modules) {
     if (m.number < from) continue; // learner chose a later starting point on the Start page
@@ -114,7 +115,7 @@ export function nextAction(p: Progress): NextAction {
       const q = p.quiz[l.id];
       if (q) return { step: 'Learn', label: `Retake quiz: ${l.title}`, why: `You scored ${q.best}/${q.total}. Reach ${LESSON_PASS_PCT}% to complete it.`, href: `#/lesson/${l.id}/quiz` };
       if (p.lessonsViewed[l.id]) return { step: 'Learn', label: `Continue: ${l.title}`, why: `Module ${m.number}. Finish the lesson, then take its quiz.`, href: `#/lesson/${l.id}` };
-      return { step: 'Learn', label: `${Object.keys(p.lessonsViewed).length ? 'Next lesson' : 'Start here'}: ${l.title}`, why: `Module ${m.number}: ${m.title}. About ${l.minutes} minutes.`, href: `#/lesson/${l.id}` };
+      return { step: 'Learn', label: `${Object.keys(p.lessonsViewed).length ? 'Next lesson' : 'Start'}: ${l.title}`, why: `Module ${m.number}: ${m.title}. About ${l.minutes} minutes.`, href: `#/lesson/${l.id}` };
     }
     const ex = allExercises.find((x) => x.module.id === m.id && !p.exercises[x.exercise.id]?.done);
     if (ex) return { step: 'Practice', label: `Practice: ${ex.exercise.title}`, why: `Try it hands-on in the Playground (Module ${m.number}).`, href: `#/playground/${ex.exercise.id}` };
@@ -123,6 +124,14 @@ export function nextAction(p: Progress): NextAction {
   }
   if (!p.final?.passed) return { step: 'Prove', label: 'Take the final assessment', why: 'Show you can use Claude Code on real work.', href: '#/final' };
   return { step: 'Prove', label: 'Review your progress', why: 'You have completed the academy.', href: '#/progress' };
+}
+
+/** The next step with its label split into a short verb and the thing to do, for compact buttons. */
+export function nextAction(p: Progress): NextAction {
+  const a = baseNext(p);
+  const i = a.label.indexOf(': ');
+  if (i > 0) return { ...a, verb: a.label.slice(0, i), target: a.label.slice(i + 2) };
+  return { ...a, verb: a.step === 'Prove' ? 'Final step' : 'Next', target: a.label };
 }
 
 export function unmetRequirements(p: Progress, m: Module): Module[] {

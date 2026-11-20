@@ -10,7 +10,7 @@ Interactive, self-paced academy that turns developers into confident AI-assisted
 - Click-to-explore Mermaid diagrams, click-to-learn concepts, prompt builder, simulated Claude Code interface
 - **Start here page:** three starting levels (new, uses AI assistants, already uses Claude Code) so nobody has to guess where to begin. Each lesson opens with a one sentence "In short" summary, and the path shows honest time estimates.
 - **Glossary:** every term used in the lessons, searchable, in plain language.
-- **Starter project:** `starters/shop-app` is a small dependency free app with five seeded bugs, used by the Module 2, 4 and 6 assignments (`BUG_REPORTS.md` for learners, `ANSWERS.md` for the answer key).
+- **Starter projects:** `starters/shop-app` (five seeded bugs, used by Modules 2, 4 and 6, with `BUG_REPORTS.md` for learners and `ANSWERS.md` as the answer key) and `starters/task-tracker` (a small layered API to explore and plan a feature on, used by Module 3). Both have no dependencies, and each assignment links to its folder on GitHub.
 - **Mentor summary:** every assignment can copy a short progress summary to paste to a mentor.
 - **Accounts:** sign up or sign in to save progress to your account and continue on any device. Guests keep working with browser-only saving, and guest progress is merged into the account on first sign-in.
 - **Global search:** `Ctrl/Cmd + K` or `/` searches lessons, concepts, exercises, assignments and resources.

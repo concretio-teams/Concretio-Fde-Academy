@@ -4,6 +4,7 @@ import { lessonDone, moduleStats, nextAction, overall, skillLevels } from '../li
 import { resetAll } from '../lib/auth';
 import { streak, useProgress, type Progress as P } from '../lib/store';
 import { Badge, Button, Card, LinkButton, PageHead, Progress, Ring } from '../ui';
+import { LevelPicker } from './Start';
 
 function achievements(p: P) {
   const solvedSec = allExercises.filter((e) => e.exercise.category === 'security' && p.exercises[e.exercise.id]?.done).length;
@@ -31,6 +32,54 @@ export function Dashboard() {
   const scores = Object.values(p.quiz);
   const avg = scores.length ? Math.round(scores.reduce((a, q) => a + (q.best / q.total) * 100, 0) / scores.length) : null;
   const ach = achievements(p);
+  // Before the first lesson there is nothing to measure yet: show the single choice that gets them started.
+  const fresh = o.done === 0 && Object.keys(p.lessonsViewed).length === 0;
+  const rules = (
+    <>
+      <h2>Five rules for every session</h2>
+      <div className="grid c4" style={{ marginBottom: 24 }}>
+        {[
+          ['Plan before code', 'Use plan mode and agree the approach first.'],
+          ['Tests decide done', 'Green checks, not confident prose, finish a task.'],
+          ['Read every diff', 'You own what you merge, generated or not.'],
+          ['Safe environments only', 'Experiment in sandboxes, never on production data.'],
+          ['No secrets in prompts', 'Keys and customer data never go into a prompt.'],
+        ].map(([t, d]) => (
+          <Card key={t}><b>{t}</b><div className="small muted">{d}</div></Card>
+        ))}
+      </div>
+    </>
+  );
+  if (fresh) return (
+    <>
+      <div className="hero" style={{ marginBottom: 20 }}>
+        <div className="kicker">Concretio FDE Academy</div>
+        <h1>Welcome. Which of these sounds like you?</h1>
+        <p className="muted">One click takes you to your first lesson. You can change your mind later and nothing is locked. {allLessons.length} lessons, {allExercises.length} exercises and {allAssignments.length} assignments, at your own pace.</p>
+        <LevelPicker />
+      </div>
+      <h2>The path ahead</h2>
+      <div className="journey">
+        {[['Learn', 'Short lessons with a quiz at the end'], ['Practice', 'Exercises and real assignments'], ['Prove', 'A final assessment']].map(([label, sub], i) => (
+          <div key={label} className="jstep">
+            <div><span className="n">{i + 1}</span><b>{label}</b></div>
+            <div className="small muted" style={{ marginTop: 4 }}>{sub}</div>
+          </div>
+        ))}
+      </div>
+      <h2>Your modules</h2>
+      <div className="grid c2" style={{ marginBottom: 24 }}>
+        {modules.map((m) => (
+          <Card key={m.id} onClick={() => { window.location.hash = href('lesson', m.lessons[0].id); }}>
+            <span className="kicker">Module {m.number}</span>
+            <h3>{m.title}</h3>
+            <div className="small muted">{m.tagline}</div>
+          </Card>
+        ))}
+      </div>
+      {rules}
+    </>
+  );
   return (
     <>
       <div className="hero row" style={{ gap: 24, marginBottom: 20 }}>
@@ -41,7 +90,6 @@ export function Dashboard() {
           <p className="muted">From AI coding tool user to confident AI-assisted engineer. {allLessons.length} lessons, {allExercises.length} exercises, {allAssignments.length} assignments and a final assessment.</p>
           <div className="row">
             <LinkButton variant="primary" href={next.href}>{next.label}</LinkButton>
-            {!p.track && o.done === 0 && <LinkButton href={href('start')}>New here? Find your starting point</LinkButton>}
           </div>
           <div className="small muted" style={{ marginTop: 6 }}>{next.why} Press <kbd>C</kbd> anytime to continue.</div>
         </div>
@@ -65,18 +113,6 @@ export function Dashboard() {
           </a>
         ))}
       </div>
-      <h2>Five rules for every session</h2>
-      <div className="grid c4" style={{ marginBottom: 24 }}>
-        {[
-          ['Plan before code', 'Use plan mode and agree the approach first.'],
-          ['Tests decide done', 'Green checks, not confident prose, finish a task.'],
-          ['Read every diff', 'You own what you merge, generated or not.'],
-          ['Safe environments only', 'Experiment in sandboxes, never on production data.'],
-          ['No secrets in prompts', 'Keys and customer data never go into a prompt.'],
-        ].map(([t, d]) => (
-          <Card key={t}><b>{t}</b><div className="small muted">{d}</div></Card>
-        ))}
-      </div>
       <h2>Your modules</h2>
       <div className="grid c2" style={{ marginBottom: 24 }}>
         {modules.map((m) => {
@@ -91,6 +127,7 @@ export function Dashboard() {
           );
         })}
       </div>
+      {rules}
       <h2>Achievements</h2>
       <div className="grid c4">
         {ach.map((a) => (

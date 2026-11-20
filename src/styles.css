@@ -418,3 +418,18 @@ html, body { max-width: 100%; overflow-x: clip; }
 :root:not([data-theme='dark']) .warnText { color: var(--warn) !important; }
 :root:not([data-theme='dark']) .mobilebar { background: var(--side-bg); border-bottom: 1px solid var(--border); }
 :root:not([data-theme='dark']) .mobilebar .iconbtn { color: var(--text); }
+
+/* one-click level picker (dashboard hero) */
+.levelpick { display: grid; gap: 8px; margin-top: 14px; max-width: 640px; }
+.levelbtn { display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; transition: background .12s, border-color .12s, transform .12s; }
+.levelbtn:hover { background: var(--accent-soft); border-color: var(--accent); }
+.levelbtn:active { transform: scale(.99); }
+.levelbtn b { display: block; font-weight: 600; }
+.levelbtn small { display: block; color: var(--muted); font-size: .82rem; margin-top: 2px; }
+.levelbtn .go { color: var(--accent-ink); font-size: 1.2rem; flex: none; }
+/* lesson orientation */
+.outline { flex: 1; min-width: 220px; }
+.outline summary { cursor: pointer; font-weight: 600; font-size: .9rem; }
+.outline ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 4px; }
+.linklike { background: none; border: 0; padding: 0; color: var(--accent-ink); text-align: left; cursor: pointer; font: inherit; text-decoration: underline; text-underline-offset: 2px; }
+#quiz, #go-deeper, h3.rich-h { scroll-margin-top: 16px; }

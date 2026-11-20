@@ -55,6 +55,7 @@ function Choose({ ex }: { ex: Extract<Exercise, { kind: 'choose' }> }) {
         );
       })}
       <div className="row">
+        {!shown && sel === null && <span className="small muted" style={{ order: 2 }}>Pick an answer first</span>}
         {!shown ? <Button variant="primary" onClick={check} disabled={sel === null}>Check answer</Button>
           : <Button onClick={() => { setShown(false); setSel(null); }}>{ok ? 'Try again' : 'Retry'}</Button>}
       </div>

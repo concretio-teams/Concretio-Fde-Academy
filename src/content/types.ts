@@ -129,6 +129,7 @@ export interface Assignment {
   steps: string[];
   deliverable: string;
   minutes?: number; // honest estimate of effort in minutes
+  example?: Rich; // a short worked example the learner can open, so they know what good looks like
   starter?: string; // folder in the academy repo with a starter project, e.g. starters/shop-app
   checklist: string[]; // self-assessment criteria the learner ticks
   hint?: Rich;

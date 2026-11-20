@@ -3,8 +3,27 @@ import { conceptList, lessonById, moduleById } from '../content';
 import { href } from '../lib/router';
 import { hours, totalMinutes } from '../lib/stats';
 import { actions, useProgress } from '../lib/store';
-import { LEVELS, TRACKS } from '../lib/tracks';
+import { LEVELS, TRACKS, type TrackInfo } from '../lib/tracks';
 import { Badge, Card, LinkButton, PageHead, Rich, showConcept } from '../ui';
+
+/** Three buttons. One click saves the level and opens the first lesson, so a new learner starts in a single step. */
+export function LevelPicker() {
+  const pick = (t: TrackInfo) => {
+    actions.setTrack(t.id);
+    const mod = moduleById(t.startModule);
+    if (mod) window.location.hash = href('lesson', mod.lessons[0].id);
+  };
+  return (
+    <div className="levelpick">
+      {TRACKS.map((t) => (
+        <button key={t.id} className="levelbtn" onClick={() => pick(t)}>
+          <span><b>{t.title}</b><small>{t.who}</small></span>
+          <span className="go" aria-hidden="true">→</span>
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export function StartPage() {
   const p = useProgress();
@@ -53,7 +72,7 @@ export function StartPage() {
 
       <h2>How long does it take?</h2>
       <p>
-        Lessons take {hours(t.lessons)} and assignments about {hours(t.assignments)}, so plan on roughly {hours(t.lessons + t.assignments)} in total.
+        Lessons take {hours(t.lessons)} and assignments {hours(t.assignments)}, so plan on {hours(t.lessons + t.assignments)} in total.
         Go at your own pace. Two or three short sessions a week works well.
       </p>
 
@@ -61,7 +80,7 @@ export function StartPage() {
       <ul>
         <li>A computer with a terminal and a code editor.</li>
         <li>A Claude account that can use Claude Code. Module 2 shows the options.</li>
-        <li>A small project to practice on. We provide one: the <code>starters/shop-app</code> folder in the academy repository.</li>
+        <li>A small project to practice on. We provide two in the <code>starters</code> folder of the academy repository, and each assignment links to the one it needs.</li>
       </ul>
 
       <h2>What the levels mean</h2>

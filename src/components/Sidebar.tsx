@@ -17,10 +17,10 @@ const ICON: Record<string, IconName> = {
   playground: 'play', knowledge: 'help', assignments: 'pencil', final: 'award', progress: 'chart',
 };
 
-// Same pages as search, grouped the way a learner thinks: learn it, practise it, prove it.
+// Same pages as search, grouped the way a learner thinks: learn it, practice it, prove it.
 const SECTIONS: [string, string[]][] = [
   ['Learn', ['start', '', 'path', 'resources', 'glossary']],
-  ['Practise', ['playground', 'knowledge', 'assignments']],
+  ['Practice', ['playground', 'knowledge', 'assignments']],
   ['Prove', ['final', 'progress']],
 ];
 const labelOf = (k: string) => PAGES.find((p) => p[0] === k)?.[1] ?? k;
@@ -40,6 +40,8 @@ function SidebarView({ active, open, collapsed, onToggleCollapsed, onHelp }: Pro
   const st = streak(p.days);
   const next = nextAction(p);
   const dark = p.theme === 'dark';
+  // "Start here" is for the first visit only. Once a level is picked or a lesson opened it only adds noise.
+  const started = !!p.track || Object.keys(p.lessonsViewed).length > 0 || o.done > 0;
   return (
     <aside className={`sidebar ${open ? 'open' : ''}`} aria-label="Main navigation">
       <div className="brand">
@@ -58,7 +60,7 @@ function SidebarView({ active, open, collapsed, onToggleCollapsed, onHelp }: Pro
       </button>
 
       <a className="continue" href={next.href} title={`${next.label}: ${next.why}`}>
-        <span className="lbl"><small>Next: {next.step}</small><b>{next.label}</b></span>
+        <span className="lbl"><small>{next.verb}</small><b>{next.target}</b></span>
         <Icon name="arrow" />
       </a>
 
@@ -66,7 +68,7 @@ function SidebarView({ active, open, collapsed, onToggleCollapsed, onHelp }: Pro
         {SECTIONS.map(([title, keys]) => (
           <div key={title} className="navgroup">
             <div className="navhead lbl">{title}</div>
-            {keys.map((k) => (
+            {keys.filter((k) => k !== 'start' || !started || active === 'start').map((k) => (
               <a key={k} href={k ? href(k) : '#/'} className={active === k ? 'active' : ''} title={labelOf(k)} aria-current={active === k ? 'page' : undefined}>
                 <Icon name={ICON[k] ?? 'list'} /><span className="lbl">{labelOf(k)}</span>
               </a>
