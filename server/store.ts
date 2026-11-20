@@ -18,10 +18,18 @@ export interface Store {
 async function createPgStore(url: string): Promise<Store> {
   const { default: pg } = await import('pg');
   const local = /localhost|127\.0\.0\.1/.test(url);
+  // Neon adds channel_binding and sslmode to its connection strings. node-postgres does not support
+  // channel_binding, and we set TLS explicitly below, so drop both.
+  const u = new URL(url);
+  u.searchParams.delete('channel_binding');
+  u.searchParams.delete('sslmode');
+  // Neon serves a publicly trusted certificate, so verify it fully; other hosts keep the lenient default.
+  const neon = /\.neon\.tech$/.test(u.hostname);
   const pool = new pg.Pool({
-    connectionString: url,
+    connectionString: u.toString(),
     max: 3,
-    ssl: process.env.PGSSL === 'disable' || local ? false : { rejectUnauthorized: false },
+    connectionTimeoutMillis: 10000,
+    ssl: process.env.PGSSL === 'disable' || local ? false : neon ? true : { rejectUnauthorized: false },
   });
   await pool.query(`
     CREATE TABLE IF NOT EXISTS academy_users (

@@ -32,23 +32,42 @@ Without `DATABASE_URL` the API stores accounts in `.data/db.json`. That is for l
 | Variable | Required | Purpose |
 |---|---|---|
 | `JWT_SECRET` | production | 16+ random characters, signs login cookies. Generate: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
-| `DATABASE_URL` | production | Postgres connection string. Tables are created automatically. |
+| `DATABASE_URL` | production | Neon Postgres connection string (use the pooled one). Tables are created automatically. |
 | `ALLOWED_EMAIL_DOMAINS` | recommended | Comma separated, for example `concret.io`. Empty allows any email. |
 | `PGSSL` | no | `disable` if your Postgres has no TLS |
 
 See `.env.example`.
 
+## Database: Neon
+
+Neon (https://neon.com) is the primary database for accounts and progress: project `concretio-fde-academy`, database `academy`, region `aws-ap-southeast-1` (Singapore). It does not expire with the web service.
+
+Get the connection string with the Neon CLI:
+
+```
+neonctl login
+neonctl connection-string --project-id <project-id> --database-name academy --role-name academy_owner --pooled
+```
+
+To copy data from another Postgres (read only on the source, verified row by row, safe to re-run):
+
+```
+SRC_DATABASE_URL=... DST_DATABASE_URL=... node scripts/migrate-db.mjs --dry   # count first
+SRC_DATABASE_URL=... DST_DATABASE_URL=... node scripts/migrate-db.mjs
+```
+
 ## Deploy on Render (app and API in one service)
 
-1. Push this repo to GitHub.
-2. Render: New, Blueprint, select the repo. `render.yaml` creates the web service and a Postgres database and wires `DATABASE_URL`; `JWT_SECRET` is generated.
-3. Check `https://<your-service>/api/health`: it should report `"storage":"postgres"`.
+1. Push this repo to GitHub and install the Render GitHub app on the organisation.
+2. Create the web service from `render.yaml` (Blueprint) or with the Render CLI. The database is Neon, so no Render database is needed.
+3. In the service Environment tab, set `DATABASE_URL` to the Neon pooled connection string. `JWT_SECRET` is generated for you.
+4. Check `https://<your-service>/api/health`: it should report `"storage":"postgres"`.
 
-Notes: Render's free Postgres expires after a period and free web services sleep when idle, so use a paid plan for anything long lived.
+Notes: free Render web services sleep when idle, so use a paid plan for anything long lived.
 
 ## Deploy on Vercel
 
-1. Create a Postgres database from the Vercel Marketplace (for example Neon) and copy its connection string.
+1. Use the same Neon database and copy its pooled connection string.
 2. Import the repo in Vercel. Build settings come from `vercel.json`.
 3. Add environment variables `JWT_SECRET`, `DATABASE_URL`, `ALLOWED_EMAIL_DOMAINS`.
 4. Deploy, then open `/api/health` to confirm `"storage":"postgres"`.
