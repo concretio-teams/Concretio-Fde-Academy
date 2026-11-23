@@ -14,7 +14,9 @@
     "start": "tsx server/index.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.server.json",
     "preview": "vite preview",
-    "db:migrate": "node scripts/migrate-db.mjs"
+    "db:migrate": "node scripts/migrate-db.mjs",
+    "check:links": "node scripts/check-links.mjs",
+    "test:api": "tsx scripts/api-smoke.ts"
   },
   "dependencies": {
     "bcryptjs": "2.4.3",

@@ -5,7 +5,7 @@ import { BlockView } from '../components/Blocks';
 import { GoDeeper } from '../components/GoDeeper';
 import { Quiz } from '../components/Quiz';
 import { href } from '../lib/router';
-import { hours, lessonDone, moduleStats, startNumber, totalMinutes, unmetRequirements } from '../lib/stats';
+import { day1Done, hours, lessonDone, moduleStats, startNumber, totalMinutes, unmetRequirements } from '../lib/stats';
 import { actions, useProgress } from '../lib/store';
 import { Badge, Button, Card, LinkButton, PageHead, Progress, Rich } from '../ui';
 
@@ -91,6 +91,12 @@ export function LessonPage({ id, scrollToQuiz }: { id: string; scrollToQuiz?: bo
     <>
       <div className="small muted"><a href={href('path')}>Path</a> / Module {m.number}: {m.title}</div>
       <PageHead kicker={`Module ${m.number}, lesson ${index + 1} of ${m.lessons.length}`} title={lesson.title} />
+      {m.number >= 3 && !day1Done(p) && (
+        <div className="callout warn" style={{ marginBottom: 12 }}>
+          <div className="ct">Do the Day 1 proof first</div>
+          <p style={{ margin: '4px 0' }}>This module assumes you have run the real Claude Code. <a href={href('assignments', 'm2-a1')}>Complete the Day 1 assignment</a> (about 45 minutes), then come back. You can still read on.</p>
+        </div>
+      )}
       <div className="row" style={{ marginBottom: 14 }}>
         <Badge>{lesson.minutes} min</Badge>
         {done && <Badge tone="ok">Completed</Badge>}

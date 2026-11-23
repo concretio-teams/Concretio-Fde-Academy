@@ -720,7 +720,7 @@ Auto-compaction also runs when you approach the limit, but compacting yourself w
   assignments: [
     {
       id: 'm2-a1',
-      title: 'Install, authenticate and run a session on a sample repo',
+      title: 'Day 1 proof: run real Claude Code on a sample repo',
       minutes: 45,
       starter: 'starters/shop-app',
       brief: 'Set up Claude Code from scratch, run a short real session on the starter project in `starters/shop-app` of the academy repository (copy the folder out first; it has no dependencies, so no `npm install` is needed, and `npm test` should pass), and record every command you used as a personal cheat sheet.',
@@ -734,7 +734,7 @@ Auto-compaction also runs when you approach the limit, but compacting yourself w
         'Resume the session with `claude -r "<name>"` and confirm it continued.',
         'Write down each command and shortcut you used with one line on what it did.',
       ],
-      deliverable: 'A text or markdown file listing every command used, in order, with a one line explanation and the permission mode used at each step.',
+      deliverable: 'Evidence from your own machine, pasted into the notes: the output of `claude --version` and `claude auth status`, the plan Claude proposed, the `git diff` of the change it made, and your command log (every command in order, with one line on what it did and the permission mode used).',
       checklist: [
         'Installation verified with `claude --version`',
         'Authenticated and confirmed with `claude auth status` or `/status`',
@@ -742,6 +742,8 @@ Auto-compaction also runs when you approach the limit, but compacting yourself w
         'Used plan mode before approving an edit',
         'Used `/context` and `/compact` with instructions',
         'Resumed a named session',
+        'Pasted real output of `claude --version` and `claude auth status`',
+        'Pasted the `git diff` of a change Claude made, and the tests passing after it',
         'Command log is complete and accurate',
       ],
       hint: 'If `claude` is not found after installing, open a new terminal window and run `claude doctor`.',

@@ -6,6 +6,7 @@ import { href, useRouteState } from './lib/router';
 import { nextAction } from './lib/stats';
 import { useProgress } from './lib/store';
 import { KnowledgePage, LessonPage, PathPage } from './pages/Learn';
+import { AdminPage } from './pages/Admin';
 import { LoginPage } from './pages/Login';
 import { Dashboard, ProgressPage } from './pages/Overview';
 import { GlossaryPage, StartPage } from './pages/Start';
@@ -74,6 +75,7 @@ export function App() {
   else if (a === 'final') page = <FinalPage />;
   else if (a === 'progress') page = <ProgressPage />;
   else if (a === 'login') page = <LoginPage />;
+  else if (a === 'admin') page = <AdminPage />;
   else page = <PageHead title="Page not found"><a href={href()}>Back to dashboard</a></PageHead>;
 
   // The highlight follows the click immediately; the page below catches up without blocking it.

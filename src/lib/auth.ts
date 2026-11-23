@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react';
 import { emptyProgress, mergeProgress, sameProgress, sanitize } from '../../shared/progress';
 import { actions, getProgress, onProgressChange } from './store';
 
-export interface AuthUser { id: string; email: string; name: string }
+export interface AuthUser { id: string; email: string; name: string; admin?: boolean }
 export interface AuthState {
   status: 'loading' | 'guest' | 'user' | 'unavailable'; // unavailable = no API (static hosting or server down)
   user: AuthUser | null;

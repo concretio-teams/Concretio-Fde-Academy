@@ -12,6 +12,7 @@ export interface Store {
   createUser(u: UserRecord): Promise<void>;
   getProgress(userId: string): Promise<ProgressRecord | null>;
   saveProgress(userId: string, data: ProgressData): Promise<number>;
+  listAll(): Promise<{ user: UserRecord; progress: ProgressRecord | null }[]>;
 }
 
 /* ---------------- Postgres (production: Neon, Vercel Postgres, Render Postgres, any DATABASE_URL) ---------------- */
@@ -56,6 +57,10 @@ async function createPgStore(url: string): Promise<Store> {
       const r = await pool.query('SELECT data, updated_at FROM academy_progress WHERE user_id = $1', [userId]);
       return r.rows[0] ? { data: sanitize(r.rows[0].data), updatedAt: Number(r.rows[0].updated_at) } : null;
     },
+    async listAll() {
+      const r = await pool.query('SELECT u.*, p.data AS pdata, p.updated_at AS pupdated FROM academy_users u LEFT JOIN academy_progress p ON p.user_id = u.id ORDER BY u.created_at');
+      return r.rows.map((x: any) => ({ user: row(x), progress: x.pdata ? { data: sanitize(x.pdata), updatedAt: Number(x.pupdated) } : null }));
+    },
     async saveProgress(userId, data) {
       const now = Date.now();
       await pool.query(
@@ -88,6 +93,7 @@ async function createFileStore(file: string): Promise<Store> {
     async createUser(u) { db.users.push(u); await persist(); },
     async getProgress(userId) { const p = db.progress[userId]; return p ? { data: sanitize(p.data), updatedAt: p.updatedAt } : null; },
     async saveProgress(userId, data) { const now = Date.now(); db.progress[userId] = { data, updatedAt: now }; await persist(); return now; },
+    async listAll() { return db.users.map((user) => { const p = db.progress[user.id]; return { user, progress: p ? { data: sanitize(p.data), updatedAt: p.updatedAt } : null }; }); },
   };
 }
 

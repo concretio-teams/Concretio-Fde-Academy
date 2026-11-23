@@ -6,6 +6,10 @@ import { TRACKS } from './tracks';
 
 export const LESSON_PASS_PCT = 70;
 
+/** Day 1 proof: the Module 2 assignment, done with evidence of a real Claude Code session. Modules 3 and later expect it. */
+export const DAY1_ID = 'm2-a1';
+export const day1Done = (p: Progress): boolean => !!p.assignments[DAY1_ID]?.done;
+
 export function lessonDone(p: Progress, l: Lesson): boolean {
   if (l.quiz.length === 0) return !!p.lessonsManual[l.id];
   const q = p.quiz[l.id];
@@ -110,6 +114,9 @@ function baseNext(p: Progress): NextBase {
   const from = startNumber(p);
   for (const m of modules) {
     if (m.number < from) continue; // learner chose a later starting point on the Start page
+    if (m.number >= 3 && !day1Done(p)) {
+      return { step: 'Practice', label: 'Assignment: Prove Claude Code runs on your machine', why: 'Day 1 proof. Everything after Module 2 assumes you have used the real tool.', href: `#/assignments/${DAY1_ID}` };
+    }
     for (const l of m.lessons) {
       if (lessonDone(p, l)) continue;
       const q = p.quiz[l.id];

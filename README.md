@@ -34,9 +34,22 @@ Without `DATABASE_URL` the API stores accounts in `.data/db.json`. That is for l
 | `JWT_SECRET` | production | 16+ random characters, signs login cookies. Generate: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
 | `DATABASE_URL` | production | Neon Postgres connection string (use the pooled one). Tables are created automatically. |
 | `ALLOWED_EMAIL_DOMAINS` | recommended | Comma separated, for example `concret.io`. Empty allows any email. |
+| `ADMIN_EMAILS` | no | Comma separated emails that can open the **Cohort** page (`#/admin`) and download progress as CSV. Empty means nobody. |
 | `PGSSL` | no | `disable` if your Postgres has no TLS |
 
 See `.env.example`.
+
+## Checks
+
+```
+npm run typecheck     # app and server
+npm run test:api      # signup, login, progress merge, admin access, origin check (temporary JSON store)
+npm run check:links   # every resource link, YouTube authors included; CI also runs it every Monday
+```
+
+GitHub Actions (`.github/workflows/ci.yml`) runs these plus the starter project tests on every push.
+
+**Day 1 proof:** the Module 2 assignment (`m2-a1`) requires pasted evidence of a real Claude Code session. Modules 3 and later show a banner and the "Continue" button points to it until it is done.
 
 ## Database: Neon
 

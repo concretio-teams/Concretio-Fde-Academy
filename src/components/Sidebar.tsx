@@ -75,6 +75,14 @@ function SidebarView({ active, open, collapsed, onToggleCollapsed, onHelp }: Pro
             ))}
           </div>
         ))}
+        {auth.user?.admin && (
+          <div className="navgroup">
+            <div className="navhead lbl">Admin</div>
+            <a href="#/admin" className={active === 'admin' ? 'active' : ''} title="Cohort progress" aria-current={active === 'admin' ? 'page' : undefined}>
+              <Icon name="chart" /><span className="lbl">Cohort</span>
+            </a>
+          </div>
+        )}
       </nav>
 
       <div className="side-foot">

@@ -3,7 +3,7 @@ import type { Resource } from './types';
 // How to re-verify: curl -sL -o /dev/null -w "%{http_code}" <url> for every url below and expect 200.
 // For YouTube, fetch https://www.youtube.com/oembed?url=<watch url>&format=json and check the author is Anthropic.
 // Anthropic changes and renames URLs often (docs paths, Academy course slugs), so re-check every few months.
-// Last full check: 2026-11-13. Every course page showed "Register | FREE". Course minutes are honest estimates.
+// Last full check: 2026-11-23 (npm run check:links, 32/32 ok). Every course page showed "Register | FREE". Course minutes are honest estimates.
 // Order: the best first stop for a complete beginner comes first.
 export const resources: Resource[] = [
   {
@@ -16,7 +16,7 @@ export const resources: Resource[] = [
     learn: 'Use Claude confidently for everyday tasks and know its core features, which is the easiest place to start if you are new to AI tools.',
     modules: ['m1'],
     lessons: ['m1-l1'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-course-ai-fluency',
@@ -28,7 +28,7 @@ export const resources: Resource[] = [
     learn: 'Describe a simple framework for working with AI well, safely and ethically, and apply it to your own tasks.',
     modules: ['m1', 'm8'],
     lessons: ['m1-l1', 'm8-l1', 'm8-l4'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-how-it-works',
@@ -40,7 +40,7 @@ export const resources: Resource[] = [
     learn: 'Explain the agent loop, the tools Claude Code uses, and how it handles your project and context.',
     modules: ['m1', 'm2'],
     lessons: ['m1-l1', 'm1-l2', 'm2-l2'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-quickstart',
@@ -52,7 +52,7 @@ export const resources: Resource[] = [
     learn: 'Install Claude Code, log in, and finish your first real task in a project.',
     modules: ['m2'],
     lessons: ['m2-l1'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-course-code-101',
@@ -64,7 +64,7 @@ export const resources: Resource[] = [
     learn: 'Use Claude Code in your daily development workflow with confidence.',
     modules: ['m2', 'm3'],
     lessons: ['m2-l1', 'm3-l2'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-permission-modes',
@@ -76,7 +76,7 @@ export const resources: Resource[] = [
     learn: 'Pick between asking for approval, auto accepting edits and plan mode so you stay in control.',
     modules: ['m2', 'm3', 'm7'],
     lessons: ['m2-l2', 'm3-l1', 'm7-l2'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-vscode',
@@ -88,7 +88,7 @@ export const resources: Resource[] = [
     learn: 'Run Claude Code inside VS Code, review its edits as diffs and use it with your open files.',
     modules: ['m2', 'm6'],
     lessons: ['m2-l2', 'm6-l1'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-course-in-action',
@@ -100,7 +100,7 @@ export const resources: Resource[] = [
     learn: 'Use Claude Code to read files, run commands, edit code, manage context and work with GitHub.',
     modules: ['m3', 'm6'],
     lessons: ['m3-l1', 'm6-l1', 'm6-l3'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-context-windows',
@@ -112,7 +112,7 @@ export const resources: Resource[] = [
     learn: 'Explain what the context window is and why long sessions need clearing or summarizing.',
     modules: ['m2', 'm4'],
     lessons: ['m2-l3', 'm4-l3'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-prompt-overview',
@@ -124,7 +124,7 @@ export const resources: Resource[] = [
     learn: 'Decide when prompting is the right fix and find the technique that suits your problem.',
     modules: ['m4'],
     lessons: ['m4-l1'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-costs',
@@ -136,7 +136,7 @@ export const resources: Resource[] = [
     learn: 'Track token use and cut cost with smaller context, the right model and focused prompts.',
     modules: ['m2', 'm4', 'm7'],
     lessons: ['m2-l3', 'm4-l3', 'm7-l3'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-skills',
@@ -148,7 +148,7 @@ export const resources: Resource[] = [
     learn: 'Write a SKILL.md so Claude applies your team instructions automatically.',
     modules: ['m5'],
     lessons: ['m5-l1'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-course-skills',
@@ -160,7 +160,7 @@ export const resources: Resource[] = [
     learn: 'Build, configure and share skills in Claude Code and fix common problems.',
     modules: ['m5'],
     lessons: ['m5-l1'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-subagents',
@@ -172,7 +172,7 @@ export const resources: Resource[] = [
     learn: 'Define a subagent with its own tools and context to delegate focused tasks.',
     modules: ['m5'],
     lessons: ['m5-l1', 'm5-l3'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-mcp',
@@ -184,7 +184,7 @@ export const resources: Resource[] = [
     learn: 'Add an MCP server so Claude can reach tools like issue trackers, databases and APIs.',
     modules: ['m5', 'm6'],
     lessons: ['m5-l2', 'm6-l2'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-course-mcp',
@@ -196,7 +196,7 @@ export const resources: Resource[] = [
     learn: 'Build a simple MCP server and client in Python with tools, resources and prompts.',
     modules: ['m5'],
     lessons: ['m5-l2'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-github-actions',
@@ -208,7 +208,7 @@ export const resources: Resource[] = [
     learn: 'Set up Claude to review pull requests and handle issues from inside GitHub.',
     modules: ['m5', 'm7'],
     lessons: ['m5-l3', 'm7-l3'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-headless',
@@ -220,7 +220,7 @@ export const resources: Resource[] = [
     learn: 'Run Claude Code from scripts and CI with the -p flag and structured output.',
     modules: ['m5'],
     lessons: ['m5-l3'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-tool-use',
@@ -232,7 +232,7 @@ export const resources: Resource[] = [
     learn: 'Explain how Claude decides to call tools and how your code returns the results.',
     modules: ['m5'],
     lessons: ['m5-l1'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-develop-tests',
@@ -244,7 +244,7 @@ export const resources: Resource[] = [
     learn: 'Write measurable success criteria and tests to check that an AI feature really works.',
     modules: ['m7'],
     lessons: ['m7-l1', 'm7-l3'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-effective-agents',
@@ -256,7 +256,7 @@ export const resources: Resource[] = [
     learn: 'Tell simple workflows from true agents and choose the simplest design that solves a client problem.',
     modules: ['m8'],
     lessons: ['m8-l2', 'm8-l3'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-course-builders',
@@ -268,7 +268,7 @@ export const resources: Resource[] = [
     learn: 'Own the full path from problem to shipped solution while working well with AI.',
     modules: ['m8'],
     lessons: ['m8-l3'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-best-practices',
@@ -280,7 +280,7 @@ export const resources: Resource[] = [
     learn: 'How to give Claude the context it cannot see, add verification checks, and manage context with /clear, /rewind and plan mode.',
     modules: ['m3', 'm4', 'm6', 'm7'],
     lessons: ['m3-l2', 'm3-l3', 'm4-l2', 'm6-l3', 'm7-l1'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-common-workflows',
@@ -292,7 +292,7 @@ export const resources: Resource[] = [
     learn: 'Step by step recipes for exploring a new codebase, fixing bugs, refactoring, writing tests and creating pull requests with Claude Code.',
     modules: ['m3', 'm6', 'm8'],
     lessons: ['m3-l1', 'm3-l2', 'm3-l3', 'm6-l1', 'm6-l2', 'm6-l3', 'm8-l2'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-memory',
@@ -304,7 +304,7 @@ export const resources: Resource[] = [
     learn: 'Where CLAUDE.md files live, how to keep them under about 200 lines, how imports and .claude/rules work, and what auto memory stores.',
     modules: ['m4'],
     lessons: ['m4-l2', 'm4-l3'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-hooks-guide',
@@ -316,7 +316,7 @@ export const resources: Resource[] = [
     learn: 'How to write PreToolUse and PostToolUse hooks in settings.json that format code or block edits to protected files with exit code 2.',
     modules: ['m5'],
     lessons: ['m5-l2'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-prompting',
@@ -328,7 +328,7 @@ export const resources: Resource[] = [
     learn: 'How to write clear, specific prompts with context, examples and output requirements that you can reuse in Claude Code requests and discovery prompts.',
     modules: ['m4', 'm8'],
     lessons: ['m4-l1', 'm8-l1', 'm8-l4'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-security',
@@ -340,7 +340,7 @@ export const resources: Resource[] = [
     learn: 'How the permission model, sandboxing and prompt injection safeguards work, and what you remain responsible for when running Claude Code on real projects.',
     modules: ['m2', 'm5', 'm7'],
     lessons: ['m2-l2', 'm5-l2', 'm7-l2'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-video-best-practices',
@@ -352,7 +352,7 @@ export const resources: Resource[] = [
     learn: 'A walkthrough from Anthropic of CLAUDE.md files, permissions, context management and plan then implement workflows (published July 2025, so check the docs for newer defaults).',
     modules: ['m2', 'm3', 'm4'],
     lessons: ['m2-l3', 'm3-l3', 'm4-l1'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-video-mastering',
@@ -364,7 +364,7 @@ export const resources: Resource[] = [
     learn: 'Practical session habits from the Claude Code team: how to start sessions, steer Claude and use it across real tasks (published May 2025, so some UI details have changed).',
     modules: ['m2'],
     lessons: ['m2-l1'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-video-agents-tips',
@@ -376,7 +376,7 @@ export const resources: Resource[] = [
     learn: 'Hear Anthropic engineers explain what AI agents are, the common mistakes teams make, and when a plain workflow is the better choice (published February 2025).',
     modules: ['m1', 'm5'],
     lessons: ['m1-l2', 'm5-l3'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
   {
     id: 'res-video-agents-effective',
@@ -388,6 +388,6 @@ export const resources: Resource[] = [
     learn: 'A conversation with an Anthropic researcher behind the "Building effective agents" guide, on how to keep agent designs simple and reliable.',
     modules: ['m1', 'm8'],
     lessons: ['m1-l2', 'm8-l2'],
-    verified: '2026-11-13',
+    verified: '2026-11-23',
   },
 ];

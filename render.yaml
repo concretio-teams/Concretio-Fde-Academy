@@ -18,5 +18,7 @@ services:
         generateValue: true
       - key: ALLOWED_EMAIL_DOMAINS
         value: concret.io
+      - key: ADMIN_EMAILS
+        sync: false # comma separated leader emails who may open the Cohort page
       - key: DATABASE_URL
         sync: false # Neon pooled connection string, entered in the dashboard

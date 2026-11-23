@@ -19,7 +19,9 @@ function secret(): string {
 const allowedDomains = () =>
   (process.env.ALLOWED_EMAIL_DOMAINS || '').split(',').map((d) => d.trim().toLowerCase().replace(/^@/, '')).filter(Boolean);
 
-const publicUser = (u: UserRecord) => ({ id: u.id, email: u.email, name: u.name });
+const adminEmails = () => (process.env.ADMIN_EMAILS || '').split(',').map((d) => d.trim().toLowerCase()).filter(Boolean);
+const isAdmin = (u: UserRecord) => adminEmails().includes(u.email);
+const publicUser = (u: UserRecord) => ({ id: u.id, email: u.email, name: u.name, admin: isAdmin(u) });
 
 // Constant-time-ish login: compare against a dummy hash when the user does not exist.
 const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', 10);
@@ -153,6 +155,15 @@ export function createApp() {
   app.delete('/api/progress', requireUser, wrap(async (req, res) => {
     await (await getStore()).saveProgress(req.userId!, sanitize(null));
     res.json({ ok: true });
+  }));
+
+  // Cohort view for leaders. Only emails listed in ADMIN_EMAILS may read it. Password hashes never leave the server.
+  app.get('/api/admin/cohort', requireUser, wrap(async (req, res) => {
+    const store = await getStore();
+    const me = await store.findById(req.userId!);
+    if (!me || !isAdmin(me)) return res.status(403).json({ error: 'Admins only' });
+    const rows = await store.listAll();
+    res.json({ learners: rows.map((r) => ({ id: r.user.id, name: r.user.name, email: r.user.email, joined: r.user.createdAt, updatedAt: r.progress?.updatedAt ?? 0, data: r.progress?.data ?? null })) });
   }));
 
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found' }));
