@@ -16,7 +16,8 @@
     "preview": "vite preview",
     "db:migrate": "node scripts/migrate-db.mjs",
     "check:links": "node scripts/check-links.mjs",
-    "test:api": "tsx scripts/api-smoke.ts"
+    "test:api": "tsx scripts/api-smoke.ts",
+    "dev:staging": "concurrently -n web,api -c cyan,magenta \"vite\" \"tsx --env-file=.env.staging watch server/index.ts\""
   },
   "dependencies": {
     "bcryptjs": "2.4.3",
