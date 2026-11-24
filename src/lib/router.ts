@@ -1,7 +1,7 @@
 import { startTransition, useEffect, useState } from 'react';
 
 export function parseHash(): string[] {
-  const h = window.location.hash.replace(/^#\/?/, '');
+  const h = window.location.hash.replace(/^#\/?/, '').split('?')[0];
   return h.split('/').filter(Boolean).map(decodeURIComponent);
 }
 

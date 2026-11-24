@@ -14,7 +14,7 @@ Interactive, self-paced academy that turns developers into confident AI-assisted
 - **Glossary:** every term used in the lessons, searchable, in plain language.
 - **Starter projects:** `starters/shop-app` (five seeded bugs, used by Modules 2, 4 and 6, with `BUG_REPORTS.md` for learners and `ANSWERS.md` as the answer key) and `starters/task-tracker` (a small layered API to explore and plan a feature on, used by Module 3). Both have no dependencies, and each assignment links to its folder on GitHub.
 - **Mentor summary:** every assignment can copy a short progress summary to paste to a mentor.
-- **Accounts:** sign up or sign in to save progress to your account and continue on any device. Guests keep working with browser-only saving, and guest progress is merged into the account on first sign-in.
+- **Accounts:** sign in with Google, or with email and password, to save progress to your account and continue on any device. Both lead to the same account (matched by email). Guests keep working with browser-only saving, and guest progress is merged into the account on first sign-in.
 - **Global search:** `Ctrl/Cmd + K` or `/` searches lessons, concepts, exercises, assignments and resources.
 - **Easy journey:** the sidebar always shows the single best next step. Press `C` to continue from anywhere.
 - **Collapsible navigation** (`[` key) and keyboard shortcuts (`?` for the list).
@@ -35,17 +35,30 @@ Without `DATABASE_URL` the API stores accounts in `.data/db.json`. That is for l
 |---|---|---|
 | `JWT_SECRET` | production | 16+ random characters, signs login cookies. Generate: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
 | `DATABASE_URL` | production | Neon Postgres connection string (use the pooled one). Tables are created automatically. |
-| `ALLOWED_EMAIL_DOMAINS` | recommended | Comma separated, for example `concret.io`. Empty allows any email. |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | for sign in | From a Google Cloud OAuth client of type Web application. See "Google sign in" below. |
+| `APP_URL` | for sign in | Public address, for example `https://claude-code-academy.onrender.com`. Locally `http://localhost:5173`. |
+| `ALLOWED_EMAIL_DOMAINS` | recommended | Comma separated, for example `concret.io`. Empty allows any Google account. |
 | `ADMIN_EMAILS` | no | Comma separated emails that can open the **Cohort** page (`#/admin`) and download progress as CSV. Empty means nobody. |
 | `PGSSL` | no | `disable` if your Postgres has no TLS |
 
 See `.env.example`.
 
+## Google sign in
+
+1. Google Cloud Console, then APIs and Services, then Credentials, then Create credentials, then OAuth client ID, type **Web application**. If asked, set up the consent screen as **Internal** so only your Workspace can sign in.
+2. Add these **Authorised redirect URIs** (one per environment you use):
+   - `http://localhost:5173/api/auth/google/callback` for local development
+   - `https://claude-code-academy.onrender.com/api/auth/google/callback` for production
+3. Put the Client ID and secret in `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (Render Environment tab, or `.env` locally), and set `APP_URL` to the same address as the redirect URI without the path.
+4. Open the app, go to Sign in, and choose **Continue with Google**.
+
+**People who already had a password account:** nothing changes for them. They keep signing in with their password, and can also use Google with the same email, which opens the same account with all their progress. Once an account has been used with Google, a different Google account with the same email is refused.
+
 ## Checks
 
 ```
 npm run typecheck     # app and server
-npm run test:api      # signup, login, progress merge, admin access, origin check (temporary JSON store)
+npm run test:api      # Google sign in flow (against a fake Google), progress merge, admin access, origin check
 npm run check:links   # every resource link, YouTube authors included; CI also runs it every Monday
 ```
 
@@ -75,7 +88,7 @@ SRC_DATABASE_URL=... DST_DATABASE_URL=... node scripts/migrate-db.mjs
 
 1. Push this repo to GitHub and install the Render GitHub app on the organisation.
 2. Create the web service from `render.yaml` (Blueprint) or with the Render CLI. The database is Neon, so no Render database is needed.
-3. In the service Environment tab, set `DATABASE_URL` to the Neon pooled connection string. `JWT_SECRET` is generated for you.
+3. In the service Environment tab, set `DATABASE_URL` to the Neon pooled connection string, plus `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `ADMIN_EMAILS`. `JWT_SECRET` is generated for you and `APP_URL` is set in `render.yaml`.
 4. Check `https://<your-service>/api/health`: it should report `"storage":"postgres"`.
 
 Notes: free Render web services sleep when idle, so use a paid plan for anything long lived.
@@ -91,9 +104,11 @@ The API runs as one serverless function (`api/index.ts`); `/api/*` is rewritten 
 
 ## Security notes
 
-- Passwords are hashed with bcrypt; sessions are signed, HttpOnly, SameSite=Lax cookies (Secure in production); state changing requests are same-origin checked; auth endpoints are rate limited per server instance.
-- **Email addresses are not verified.** The domain allowlist stops outsiders using other domains, but anyone could register someone else's `@concret.io` address. The data at stake is learning progress only. Add email verification or SSO before storing anything sensitive.
-- There is no password reset flow yet.
+- **Two ways in, one account.** Google (OpenID Connect, authorization code flow with PKCE, state and nonce) and email with password. Both reach the same account, matched by email, so existing password users keep working and can also use Google. For Google the server checks the ID token signature, audience, issuer and nonce, requires a verified email, and enforces `ALLOWED_EMAIL_DOMAINS` itself, so the domain hint sent to Google is not what protects you. After an account has been used with Google it is tied to that one Google identity.
+- Passwords are hashed with bcrypt. Sessions are signed, HttpOnly, SameSite=Lax cookies (Secure in production); state changing requests are same-origin checked; sign in and sign up are rate limited per server instance.
+- **Email addresses typed at password sign up are not verified.** Someone could register another person's `@concret.io` address with a password before that person ever signs in. The person can still use Google with that email and will reach the same account, but whoever set the password can also get in. The data at stake is learning progress only. To close this gap, turn password sign up off once everyone has used Google, or add email verification.
+- There is no password reset flow yet; people who forget a password can use Google.
+- Progress and emails are stored in Neon as readable data. Encryption at rest and roles are parked on the `feat/sso-rbac` branch and are not part of this.
 
 ## Structure
 
