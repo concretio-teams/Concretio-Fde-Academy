@@ -15,16 +15,22 @@ interface Props {
   questions: Question[];
   mode?: 'immediate' | 'exam';
   passPct?: number;
-  onFinish?: (score: number, total: number) => void;
+  onFinish?: (score: number, total: number, answers: number[]) => void;
+  /** The learner's last saved attempt, so coming back shows how they did instead of an empty quiz. */
+  previous?: { answers?: number[]; last: number; total: number };
 }
 
-export function Quiz({ questions, mode = 'immediate', passPct = 70, onFinish }: Props) {
+export function Quiz({ questions, mode = 'immediate', passPct = 70, onFinish, previous }: Props) {
+  // Saved answers are only trusted when they still fit these questions.
+  const saved = previous?.answers && previous.answers.length === questions.length && previous.answers.every((a, i) => Number.isInteger(a) && a >= 0 && a < (questions[i]?.options.length ?? 0)) ? previous.answers : null;
   const [attempt, setAttempt] = useState(0);
   const order = useMemo(() => questions.map((q) => shuffle(q.options.map((_, i) => i))), [questions, attempt]); // eslint-disable-line react-hooks/exhaustive-deps
   const [idx, setIdx] = useState(0);
-  const [picked, setPicked] = useState<(number | null)[]>(() => questions.map(() => null));
+  const [picked, setPicked] = useState<(number | null)[]>(() => (saved ? [...saved] : questions.map(() => null)));
   const [locked, setLocked] = useState(false);
-  const [done, setDone] = useState(false);
+  const [done, setDone] = useState(!!saved);
+  const [review, setReview] = useState(!!saved); // showing the saved attempt, not one just taken
+  const [begun, setBegun] = useState(false);
 
   const total = questions.length;
   if (total === 0) return <p className="muted">No questions yet.</p>;
@@ -32,15 +38,26 @@ export function Quiz({ questions, mode = 'immediate', passPct = 70, onFinish }: 
   const score = picked.reduce<number>((s, p, i) => s + (p === questions[i].answer ? 1 : 0), 0);
 
   const restart = () => {
-    setAttempt((a) => a + 1); setIdx(0); setPicked(questions.map(() => null)); setLocked(false); setDone(false);
+    setAttempt((a) => a + 1); setIdx(0); setPicked(questions.map(() => null)); setLocked(false); setDone(false); setReview(false); setBegun(true);
   };
+
+  // An attempt from before answers were saved: we know the score but not the answers, so offer a fresh go.
+  if (!saved && previous && !begun && !done) {
+    return (
+      <div className="feedback">
+        <b>Last time you scored {previous.last}/{previous.total}.</b>
+        <p style={{ margin: '4px 0 8px' }}>{Math.round((previous.last / previous.total) * 100) >= passPct ? 'You passed. Take it again whenever you like.' : `Reach ${passPct}% to complete this lesson.`}</p>
+        <Button variant="primary" onClick={() => setBegun(true)}>Retake quiz</Button>
+      </div>
+    );
+  }
 
   if (done) {
     const pct = Math.round((score / total) * 100);
     return (
       <div className="stack">
         <div className={`feedback ${pct >= passPct ? 'ok' : 'bad'}`}>
-          <h3 style={{ margin: 0 }}>Score: {score}/{total} ({pct}%)</h3>
+          <h3 style={{ margin: 0 }}>{review ? 'Your last attempt: ' : 'Score: '}{score}/{total} ({pct}%)</h3>
           <p style={{ margin: '4px 0 0' }}>{pct >= passPct ? 'Passed. Review anything you missed below.' : `Pass mark is ${passPct}%. Review the explanations, then retry.`}</p>
         </div>
         {questions.map((q, i) => {
@@ -56,7 +73,7 @@ export function Quiz({ questions, mode = 'immediate', passPct = 70, onFinish }: 
             </div>
           );
         })}
-        <div><Button variant="primary" onClick={restart}>Retry quiz</Button></div>
+        <div><Button variant="primary" onClick={restart}>{review ? 'Retake quiz' : 'Retry quiz'}</Button></div>
       </div>
     );
   }
@@ -72,7 +89,7 @@ export function Quiz({ questions, mode = 'immediate', passPct = 70, onFinish }: 
   const next = () => {
     if (idx + 1 >= total) {
       setDone(true);
-      onFinish?.(score, total);
+      onFinish?.(score, total, picked.map((p) => p ?? 0));
     } else { setIdx(idx + 1); setLocked(false); }
   };
 

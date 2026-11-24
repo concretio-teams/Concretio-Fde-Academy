@@ -61,6 +61,7 @@ export interface SpotExercise extends ExBase {
   lang: string;
   lines: string[];
   issues: { line: number; title: string; why: Rich; fix: Rich }[]; // line is 1-based
+  safe?: { line: number; why: Rich }[]; // why a tempting line is NOT a problem, shown when someone selects it
 }
 export type Exercise = ChooseExercise | OrderExercise | FlawsExercise | SpotExercise;
 

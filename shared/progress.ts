@@ -1,8 +1,8 @@
 // Progress shape and merge logic, shared by the browser and the API server.
 // Pure functions only, no imports, so both sides can use it.
 
-export interface QuizResult { best: number; last: number; total: number; attempts: number; at: number }
-export interface AssignmentState { checked: number[]; done: boolean; notes: string; at?: number }
+export interface QuizResult { best: number; last: number; total: number; attempts: number; at: number; answers?: number[] /* option picked per question, last attempt */ }
+export interface AssignmentState { checked: number[]; done: boolean; notes: string; at?: number; u?: number /* last edited: lets an undo win a merge */ }
 export interface FinalState {
   score: number; total: number; passed: boolean; at: number; attempts: number;
 }
@@ -22,13 +22,14 @@ export interface ProgressData {
   assignments: Record<string, AssignmentState>;
   final: FinalState | null;
   finalPractical: Record<string, number[]>;
+  finalPracticalAt: Record<string, number>; // last edit per task, so unticking survives a merge
   days: string[];
   history: { t: number; text: string }[];
 }
 
 export const emptyProgress = (theme: 'light' | 'dark' = 'light'): ProgressData => ({
   theme, track: null, profile: { goal: null, time: null, done: false, at: 0 }, lessonsViewed: {}, lessonsManual: {}, quiz: {}, exercises: {}, assignments: {},
-  final: null, finalPractical: {}, days: [], history: [],
+  final: null, finalPractical: {}, finalPracticalAt: {}, days: [], history: [],
 });
 
 const isObj = (v: unknown): v is Record<string, any> => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -60,6 +61,7 @@ export function sanitize(input: unknown): ProgressData {
     assignments: rec(input.assignments) as ProgressData['assignments'],
     final: isObj(input.final) ? (input.final as unknown as FinalState) : null,
     finalPractical: rec(input.finalPractical) as ProgressData['finalPractical'],
+    finalPracticalAt: rec(input.finalPracticalAt) as ProgressData['finalPracticalAt'],
     days: Array.isArray(input.days) ? input.days.filter((d): d is string => typeof d === 'string').slice(-800) : [],
     history: Array.isArray(input.history) ? (input.history.filter((h) => isObj(h) && typeof h.t === 'number' && typeof h.text === 'string').slice(0, 150) as ProgressData['history']) : [],
   };
@@ -81,7 +83,7 @@ export function mergeProgress(a: ProgressData, b: ProgressData): ProgressData {
     const newer = x.at >= y.at ? x : y;
     // best is only comparable when totals match; otherwise keep the better ratio
     const better = x.best / x.total >= y.best / y.total ? x : y;
-    out.quiz[k] = { best: better.best, total: better.total, last: newer.last, at: newer.at, attempts: Math.max(x.attempts, y.attempts) };
+    out.quiz[k] = { best: better.best, total: better.total, last: newer.last, at: newer.at, attempts: Math.max(x.attempts, y.attempts), ...(newer.answers ? { answers: newer.answers } : {}) };
   }
   for (const k of new Set([...Object.keys(a.exercises), ...Object.keys(b.exercises)])) {
     const x = a.exercises[k], y = b.exercises[k];
@@ -90,6 +92,9 @@ export function mergeProgress(a: ProgressData, b: ProgressData): ProgressData {
   for (const k of new Set([...Object.keys(a.assignments), ...Object.keys(b.assignments)])) {
     const x = a.assignments[k], y = b.assignments[k];
     if (!x || !y) { out.assignments[k] = (x ?? y) as AssignmentState; continue; }
+    // Edited copies carry a timestamp: the newest edit wins as a whole, so unticking a box or clearing the notes sticks.
+    // Older copies without one keep the original rule (never lose anything).
+    if (x.u !== undefined || y.u !== undefined) { out.assignments[k] = (x.u ?? 0) >= (y.u ?? 0) ? x : y; continue; }
     const done = x.done || y.done;
     out.assignments[k] = {
       checked: union(x.checked, y.checked), done,
@@ -103,8 +108,11 @@ export function mergeProgress(a: ProgressData, b: ProgressData): ProgressData {
       : a.final.score / a.final.total >= b.final.score / b.final.total ? a.final : b.final;
     out.final = { ...better, passed: a.final.passed || b.final.passed, attempts: Math.max(a.final.attempts, b.final.attempts) };
   } else out.final = a.final ?? b.final;
-  for (const k of new Set([...Object.keys(a.finalPractical), ...Object.keys(b.finalPractical)]))
-    out.finalPractical[k] = union(a.finalPractical[k], b.finalPractical[k]);
+  for (const k of new Set([...Object.keys(a.finalPractical), ...Object.keys(b.finalPractical)])) {
+    const xa = a.finalPracticalAt?.[k] ?? 0, ya = b.finalPracticalAt?.[k] ?? 0;
+    if (xa || ya) { out.finalPractical[k] = (xa >= ya ? a.finalPractical[k] : b.finalPractical[k]) ?? []; out.finalPracticalAt[k] = Math.max(xa, ya); }
+    else out.finalPractical[k] = union(a.finalPractical[k], b.finalPractical[k]);
+  }
   out.days = [...new Set([...a.days, ...b.days])].sort();
   const seen = new Set<string>();
   out.history = [...a.history, ...b.history]

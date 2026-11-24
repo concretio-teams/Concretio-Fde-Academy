@@ -124,7 +124,7 @@ export function LessonPage({ id, scrollToQuiz }: { id: string; scrollToQuiz?: bo
         <h2>Knowledge check</h2>
         <p className="muted">{lesson.quiz.length} questions. Reach 70% to complete this lesson. Retry as often as you like.</p>
         {lesson.quiz.length > 0
-          ? <Quiz questions={lesson.quiz} onFinish={(s, t) => actions.recordQuiz(lesson.id, lesson.title, s, t)} />
+          ? <Quiz questions={lesson.quiz} previous={p.quiz[lesson.id]} onFinish={(s, t, a) => actions.recordQuiz(lesson.id, lesson.title, s, t, a)} />
           : <Button variant="primary" onClick={() => actions.markLesson(lesson.id, lesson.title, true)}>Mark lesson complete</Button>}
       </div>
       {done && (() => { const n = nextAction(p); return (
@@ -152,7 +152,7 @@ export function KnowledgePage({ lessonId }: { lessonId?: string }) {
       <>
         <div className="small muted"><a href={href('knowledge')}>Knowledge checks</a> / {f.lesson.title}</div>
         <PageHead kicker={`Module ${f.module.number}`} title={f.lesson.title} />
-        <Quiz questions={f.lesson.quiz} onFinish={(s, t) => actions.recordQuiz(f.lesson.id, f.lesson.title, s, t)} />
+        <Quiz questions={f.lesson.quiz} previous={p.quiz[f.lesson.id]} onFinish={(s, t, a) => actions.recordQuiz(f.lesson.id, f.lesson.title, s, t, a)} />
       </>
     );
   }
