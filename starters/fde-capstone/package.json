@@ -1,0 +1,11 @@
+{
+  "name": "fde-capstone-starter",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Northwind Parcel late-delivery case for the Concretio FDE Academy capstone",
+  "scripts": {
+    "test": "node --test",
+    "report": "node legacy/report.js"
+  },
+  "engines": { "node": ">=18" }
+}
