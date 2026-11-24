@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { nextAction } from '../lib/stats';
+import { planOf } from '../lib/plan';
 import { allLessons, lessonById, moduleById, modules, nextLessonAfter } from '../content';
 import { BlockView } from '../components/Blocks';
 import { GoDeeper } from '../components/GoDeeper';
@@ -12,6 +13,7 @@ import { Badge, Button, Card, LinkButton, PageHead, Progress, Rich } from '../ui
 export function PathPage() {
   const p = useProgress();
   const nx = nextAction(p);
+  const plan = planOf(p);
   const isNext = (href: string) => nx.href === href || nx.href === `${href}/quiz`;
   return (
     <>
@@ -31,7 +33,7 @@ export function PathPage() {
                 <div style={{ flex: 1, minWidth: 240 }}>
                   <div className="row spread">
                     <h2 style={{ margin: 0 }}>{m.title}</h2>
-                    <div className="row">{p.track && m.number === startNumber(p) && <Badge tone="ok">Your starting point</Badge>}<Badge tone="accent">{m.level}</Badge><Badge>{hours(mins)}</Badge>{s.complete && <Badge tone="ok">Complete</Badge>}</div>
+                    <div className="row">{plan?.modules.includes(m) && <Badge tone="accent">In your plan</Badge>}{p.track && m.number === startNumber(p) && <Badge tone="ok">Your starting point</Badge>}<Badge tone="accent">{m.level}</Badge><Badge>{hours(mins)}</Badge>{s.complete && <Badge tone="ok">Complete</Badge>}</div>
                   </div>
                   <p className="muted">{m.tagline}</p>
                   {m.requires.length > 0 && (

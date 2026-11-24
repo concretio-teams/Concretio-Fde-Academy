@@ -1,8 +1,10 @@
 import { allAssignments, allExercises, allLessons, modules } from '../content';
 import { href } from '../lib/router';
-import { lessonDone, moduleStats, nextAction, overall, skillLevels } from '../lib/stats';
+import { hours, lessonDone, moduleStats, nextAction, overall, skillLevels, totalMinutes } from '../lib/stats';
+import { planOf, type Plan } from '../lib/plan';
 import { resetAll } from '../lib/auth';
 import { streak, useProgress, type Progress as P } from '../lib/store';
+import type { Module } from '../content/types';
 import { Badge, Button, Card, LinkButton, PageHead, Progress, Ring } from '../ui';
 import { LevelPicker } from './Start';
 
@@ -23,7 +25,49 @@ function achievements(p: P) {
   ];
 }
 
+function ModuleCards({ mods, p, plain }: { mods: Module[]; p: P; plain?: boolean }) {
+  return (
+    <div className="grid c2" style={{ marginBottom: 16 }}>
+      {mods.map((m) => {
+        const s = moduleStats(p, m);
+        const target = m.lessons.find((l) => !lessonDone(p, l)) ?? m.lessons[0];
+        return (
+          <Card key={m.id} onClick={() => { window.location.hash = href('lesson', target.id); }}>
+            <div className="row spread"><span className="kicker">Module {m.number}</span>{!plain && (s.complete ? <Badge tone="ok">Complete</Badge> : <Badge>{s.pct}%</Badge>)}</div>
+            <h3>{m.title}</h3>
+            {plain ? <div className="small muted">{m.tagline}</div> : <Progress value={s.pct} tone={s.complete ? 'ok' : undefined} />}
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
+/** The recommended modules first, in order. Everything else is one click away, never hidden for good. */
+function PlanSection({ plan, p, plain }: { plan: Plan; p: P; plain?: boolean }) {
+  return (
+    <>
+      <div className="row spread" style={{ alignItems: 'baseline' }}>
+        <h2 style={{ margin: 0 }}>Your plan</h2>
+        <a className="small" href={href('setup')}>Change my answers</a>
+      </div>
+      <p className="muted" style={{ margin: '4px 0 12px' }}>
+        {plan.modules.length} module{plan.modules.length === 1 ? '' : 's'}, {hours(plan.minutesLeft)} left{plan.weeks ? `, about ${plan.weeks} week${plan.weeks === 1 ? '' : 's'} at ${plan.hoursPerWeek} hours a week` : ''}.
+      </p>
+      <ModuleCards mods={plan.modules} p={p} plain={plain} />
+      {plan.rest.length > 0 && (
+        <details className="moremods">
+          <summary>Show the other {plan.rest.length} module{plan.rest.length === 1 ? '' : 's'}</summary>
+          <p className="small muted" style={{ margin: '8px 0' }}>Not part of your plan, but fully open. Start any of them whenever you like.</p>
+          <ModuleCards mods={plan.rest} p={p} plain={plain} />
+        </details>
+      )}
+    </>
+  );
+}
+
 export function Dashboard() {
+  const plan = planOf(useProgress());
   const p = useProgress();
   const o = overall(p);
   const next = nextAction(p);
@@ -50,12 +94,24 @@ export function Dashboard() {
       </div>
     </>
   );
+  if (fresh && plan) return (
+    <>
+      <div className="hero" style={{ marginBottom: 20 }}>
+        <div className="kicker">Concretio FDE Academy</div>
+        <h1>Your plan is ready.</h1>
+        <p className="muted">{plan.modules.length} module{plan.modules.length === 1 ? '' : 's'}, {hours(plan.minutesLeft)} of lessons and assignments{plan.weeks ? `, about ${plan.weeks} week${plan.weeks === 1 ? '' : 's'} at ${plan.hoursPerWeek} hours a week` : ''}. Nothing is locked, so you can open any module whenever you like.</p>
+        <div className="row"><LinkButton variant="primary" href={next.href}>{next.label}</LinkButton></div>
+      </div>
+      <PlanSection plan={plan} p={p} plain />
+      {rules}
+    </>
+  );
   if (fresh) return (
     <>
       <div className="hero" style={{ marginBottom: 20 }}>
         <div className="kicker">Concretio FDE Academy</div>
         <h1>Welcome. Which of these sounds like you?</h1>
-        <p className="muted">One click takes you to your first lesson. You can change your mind later and nothing is locked. {allLessons.length} lessons, {allExercises.length} exercises and {allAssignments.length} assignments, at your own pace.</p>
+        <p className="muted">FDE stands for Forward Deployed Engineer: a developer who works with a client to solve their real problem. By the end you can use Claude Code safely on real work. One click takes you to your first lesson. About {hours(totalMinutes().lessons + totalMinutes().assignments).replace('about ', '')} of lessons and practice in total, at your own pace, and nothing is locked.</p>
         <LevelPicker />
       </div>
       <h2>The path ahead</h2>
@@ -67,16 +123,8 @@ export function Dashboard() {
           </div>
         ))}
       </div>
-      <h2>Your modules</h2>
-      <div className="grid c2" style={{ marginBottom: 24 }}>
-        {modules.map((m) => (
-          <Card key={m.id} onClick={() => { window.location.hash = href('lesson', m.lessons[0].id); }}>
-            <span className="kicker">Module {m.number}</span>
-            <h3>{m.title}</h3>
-            <div className="small muted">{m.tagline}</div>
-          </Card>
-        ))}
-      </div>
+      <h2>All modules</h2>
+      <ModuleCards mods={modules} p={p} plain />
       {rules}
     </>
   );
@@ -113,20 +161,7 @@ export function Dashboard() {
           </a>
         ))}
       </div>
-      <h2>Your modules</h2>
-      <div className="grid c2" style={{ marginBottom: 24 }}>
-        {modules.map((m) => {
-          const s = moduleStats(p, m);
-          const next = m.lessons.find((l) => !lessonDone(p, l)) ?? m.lessons[0];
-          return (
-            <Card key={m.id} onClick={() => { window.location.hash = href('lesson', next.id); }}>
-              <div className="row spread"><span className="kicker">Module {m.number}</span>{s.complete ? <Badge tone="ok">Complete</Badge> : <Badge>{s.pct}%</Badge>}</div>
-              <h3>{m.title}</h3>
-              <Progress value={s.pct} tone={s.complete ? 'ok' : undefined} />
-            </Card>
-          );
-        })}
-      </div>
+      {plan ? <PlanSection plan={plan} p={p} /> : <><h2>Your modules</h2><ModuleCards mods={modules} p={p} /></>}
       {rules}
       <h2>Achievements</h2>
       <div className="grid c4">
