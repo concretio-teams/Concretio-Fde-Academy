@@ -13,13 +13,13 @@ export const LOGO_FULL = `${BASE}brand/concretio-logo-white.webp`;
 export const LOGO_MARK = `${BASE}brand/concretio-balloon.webp`;
 
 const ICON: Record<string, IconName> = {
-  start: 'flag', '': 'grid', path: 'route', resources: 'book', glossary: 'list',
+  start: 'flag', '': 'grid', journey: 'route', path: 'list', resources: 'book', glossary: 'list',
   playground: 'play', knowledge: 'help', assignments: 'pencil', final: 'award', progress: 'chart',
 };
 
 // Same pages as search, grouped the way a learner thinks: learn it, practice it, prove it.
 const SECTIONS: [string, string[]][] = [
-  ['Learn', ['start', '', 'path', 'resources', 'glossary']],
+  ['Learn', ['start', '', 'journey', 'path', 'resources', 'glossary']],
   ['Practice', ['playground', 'knowledge', 'assignments']],
   ['Prove', ['final', 'progress']],
 ];

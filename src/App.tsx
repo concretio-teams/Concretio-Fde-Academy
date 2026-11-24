@@ -7,6 +7,7 @@ import { nextAction } from './lib/stats';
 import { useProgress } from './lib/store';
 import { KnowledgePage, LessonPage, PathPage } from './pages/Learn';
 import { AdminPage } from './pages/Admin';
+import { JourneyPage } from './pages/Journey';
 import { LoginPage } from './pages/Login';
 import { Dashboard, ProgressPage } from './pages/Overview';
 import { GlossaryPage, StartPage } from './pages/Start';
@@ -67,6 +68,7 @@ export function App() {
   else if (a === 'start') page = <StartPage />;
   else if (a === 'glossary') page = <GlossaryPage />;
   else if (a === 'path') page = <PathPage />;
+  else if (a === 'journey') page = <JourneyPage />;
   else if (a === 'lesson' && b) page = <LessonPage key={b} id={b} scrollToQuiz={c === 'quiz'} />;
   else if (a === 'playground') page = <PlaygroundPage id={b} />;
   else if (a === 'knowledge') page = <KnowledgePage lessonId={b} />;
