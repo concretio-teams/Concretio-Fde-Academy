@@ -2,7 +2,8 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { sanitize, type ProgressData } from '../shared/progress.js';
 
-export interface UserRecord { id: string; email: string; name: string; passwordHash: string; createdAt: number }
+// passwordHash is only set on accounts created before Google sign in. New accounts have none.
+export interface UserRecord { id: string; email: string; name: string; passwordHash: string | null; googleSub: string | null; createdAt: number }
 export interface ProgressRecord { data: ProgressData; updatedAt: number }
 
 export interface Store {
@@ -10,6 +11,7 @@ export interface Store {
   findByEmail(email: string): Promise<UserRecord | null>;
   findById(id: string): Promise<UserRecord | null>;
   createUser(u: UserRecord): Promise<void>;
+  setGoogleSub(userId: string, sub: string): Promise<void>;
   getProgress(userId: string): Promise<ProgressRecord | null>;
   saveProgress(userId: string, data: ProgressData): Promise<number>;
   listAll(): Promise<{ user: UserRecord; progress: ProgressRecord | null }[]>;
@@ -44,15 +46,18 @@ async function createPgStore(url: string): Promise<Store> {
       user_id TEXT PRIMARY KEY REFERENCES academy_users(id) ON DELETE CASCADE,
       data JSONB NOT NULL,
       updated_at BIGINT NOT NULL
-    );`);
-  const row = (r: any): UserRecord => ({ id: r.id, email: r.email, name: r.name, passwordHash: r.password_hash, createdAt: Number(r.created_at) });
+    );
+    ALTER TABLE academy_users ALTER COLUMN password_hash DROP NOT NULL;
+    ALTER TABLE academy_users ADD COLUMN IF NOT EXISTS google_sub TEXT;`);
+  const row = (r: any): UserRecord => ({ id: r.id, email: r.email, name: r.name, passwordHash: r.password_hash ?? null, googleSub: r.google_sub ?? null, createdAt: Number(r.created_at) });
   return {
     kind: 'postgres',
     async findByEmail(email) { const r = await pool.query('SELECT * FROM academy_users WHERE email = $1', [email]); return r.rows[0] ? row(r.rows[0]) : null; },
     async findById(id) { const r = await pool.query('SELECT * FROM academy_users WHERE id = $1', [id]); return r.rows[0] ? row(r.rows[0]) : null; },
     async createUser(u) {
-      await pool.query('INSERT INTO academy_users (id, email, name, password_hash, created_at) VALUES ($1,$2,$3,$4,$5)', [u.id, u.email, u.name, u.passwordHash, u.createdAt]);
+      await pool.query('INSERT INTO academy_users (id, email, name, password_hash, google_sub, created_at) VALUES ($1,$2,$3,$4,$5,$6)', [u.id, u.email, u.name, u.passwordHash, u.googleSub, u.createdAt]);
     },
+    async setGoogleSub(userId, sub) { await pool.query('UPDATE academy_users SET google_sub = $2 WHERE id = $1', [userId, sub]); },
     async getProgress(userId) {
       const r = await pool.query('SELECT data, updated_at FROM academy_progress WHERE user_id = $1', [userId]);
       return r.rows[0] ? { data: sanitize(r.rows[0].data), updatedAt: Number(r.rows[0].updated_at) } : null;
@@ -91,6 +96,7 @@ async function createFileStore(file: string): Promise<Store> {
     async findByEmail(email) { return db.users.find((u) => u.email === email) ?? null; },
     async findById(id) { return db.users.find((u) => u.id === id) ?? null; },
     async createUser(u) { db.users.push(u); await persist(); },
+    async setGoogleSub(userId, sub) { const u = db.users.find((x) => x.id === userId); if (u) { u.googleSub = sub; await persist(); } },
     async getProgress(userId) { const p = db.progress[userId]; return p ? { data: sanitize(p.data), updatedAt: p.updatedAt } : null; },
     async saveProgress(userId, data) { const now = Date.now(); db.progress[userId] = { data, updatedAt: now }; await persist(); return now; },
     async listAll() { return db.users.map((user) => { const p = db.progress[user.id]; return { user, progress: p ? { data: sanitize(p.data), updatedAt: p.updatedAt } : null }; }); },

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { signOut, signIn, useAuth } from '../lib/auth';
 import { go } from '../lib/router';
 import { Badge, Button, Card, PageHead } from '../ui';
@@ -17,7 +17,12 @@ export function LoginPage() {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  // When Google sign in is refused (for example a wrong domain) the server sends the reason back in the address.
+  const [error, setError] = useState(() => new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('error') ?? '');
+  const [googleOn, setGoogleOn] = useState(false);
+  useEffect(() => {
+    fetch('/api/auth/config', { credentials: 'same-origin' }).then((r) => r.json()).then((c) => setGoogleOn(!!c.google)).catch(() => setGoogleOn(false));
+  }, []);
 
   if (auth.status === 'user' && auth.user) {
     return (
@@ -66,6 +71,12 @@ export function LoginPage() {
       </PageHead>
       <div style={{ maxWidth: 440 }}>
         <Card>
+          {googleOn && (
+            <>
+              <a className="btn" href="/api/auth/google" style={{ display: 'block', textAlign: 'center' }}>Continue with Google</a>
+              <p className="small muted" style={{ textAlign: 'center', margin: '10px 0' }}>or use your email and password</p>
+            </>
+          )}
           <form onSubmit={submit} className="stack" aria-label={mode === 'login' ? 'Sign in' : 'Create account'}>
             {mode === 'signup' && (
               <label>Name<input type="text" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" /></label>

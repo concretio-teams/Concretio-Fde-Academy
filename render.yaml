@@ -18,6 +18,12 @@ services:
         generateValue: true
       - key: ALLOWED_EMAIL_DOMAINS
         value: concret.io
+      - key: APP_URL
+        value: https://claude-code-academy.onrender.com
+      - key: GOOGLE_CLIENT_ID
+        sync: false # Google Cloud OAuth client (Web application), entered in the dashboard
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
       - key: ADMIN_EMAILS
         sync: false # comma separated leader emails who may open the Cohort page
       - key: DATABASE_URL
