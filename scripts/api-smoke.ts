@@ -124,6 +124,18 @@ try {
   const merged = (await lea.call('GET', '/api/progress')).j?.data;
   check('two devices merge, nothing lost', merged?.exercises?.e1?.done && merged?.exercises?.e2?.done);
 
+  // ---- an undo must stick: unticking a criterion, clearing notes, reopening ----
+  await lea.call('PUT', '/api/progress', { data: { ...data, assignments: { 'x-a1': { checked: [0, 1], done: true, notes: 'my notes', u: 1000 } } } });
+  await lea.call('PUT', '/api/progress', { data: { ...data, assignments: { 'x-a1': { checked: [0], done: false, notes: '', u: 2000 } } } });
+  const undone = (await lea.call('GET', '/api/progress')).j?.data?.assignments?.['x-a1'];
+  check('unticking a box, clearing notes and reopening all stick', JSON.stringify(undone?.checked) === '[0]' && undone?.notes === '' && undone?.done === false, JSON.stringify(undone));
+  // an older device that still has the earlier version must not bring the ticks back
+  await lea.call('PUT', '/api/progress', { data: { ...data, assignments: { 'x-a1': { checked: [0, 1], done: true, notes: 'my notes', u: 1000 } } } });
+  const stale = (await lea.call('GET', '/api/progress')).j?.data?.assignments?.['x-a1'];
+  check('a stale copy does not undo a newer edit', JSON.stringify(stale?.checked) === '[0]' && stale?.notes === '', JSON.stringify(stale));
+  await lea.call('PUT', '/api/progress', { data: { ...data, quiz: { 'q-l1': { best: 2, last: 2, total: 3, attempts: 1, at: 5, answers: [1, 0, 2] } } } });
+  check('quiz answers are saved for review', JSON.stringify((await lea.call('GET', '/api/progress')).j?.data?.quiz?.['q-l1']?.answers) === '[1,0,2]');
+
   // ---- admin cohort (still by ADMIN_EMAILS) ----
   check('normal user cannot read the cohort', (await lea.call('GET', '/api/admin/cohort')).s === 403);
   const boss = new Client(); await boss.google('boss');

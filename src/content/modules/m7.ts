@@ -216,6 +216,15 @@ export const module: Module = {
           exercise: {
             id: 'm7-ex-spot-errors',
             kind: 'spot',
+            safe: [
+              { line: 2, why: "Importing `traceback` is harmless. The leak is on line 18, where the stack trace is sent to the client. Keep the trace in the server logs instead." },
+              { line: 7, why: "A POST only route is the right choice for logging in. What is missing is rate limiting, which is covered under line 15." },
+              { line: 9, why: "Reading the JSON body is normal. Validating its shape would be good practice, but it does not leak information the way the flagged lines do." },
+              { line: 12, why: "Checking for a missing user is correct. The problem is the distinct message returned on line 13, not the check itself." },
+              { line: 14, why: "Verifying the password through a helper is the right approach. Only the different error message on line 15 is the issue." },
+              { line: 16, why: "Returning a token on success is the intended behavior. Token expiry matters, but it is not one of the information leaks this exercise asks about." },
+              { line: 17, why: "Catching exceptions is fine. What matters is what the handler sends back on line 18: log the details, return a generic message." },
+            ],
             title: 'Spot the information leaks in a generated login endpoint',
             category: 'security',
             lang: 'python',
@@ -380,6 +389,13 @@ export const module: Module = {
           exercise: {
             id: 'm7-ex-spot-injection',
             kind: 'spot',
+            safe: [
+              { line: 8, why: "Reading query parameters is normal. They only become dangerous when they are pasted into SQL, as on line 9." },
+              { line: 10, why: "Running the query is fine. The weakness is how the SQL string on line 9 was built before it reached `pool.query`." },
+              { line: 11, why: "This only returns `id`, `name` and `price`, which the query selected on purpose. Nothing sensitive is exposed here." },
+              { line: 15, why: "This is a parameterized insert: the values go in as `$1`, `$2` and `$3`, so SQL injection is not possible here. The risk is which values are accepted (line 17)." },
+              { line: 16, why: "Same as line 15: placeholders keep data out of the SQL text, so this is safe against injection." },
+            ],
             title: 'Spot: SQL injection, unvalidated input and data exposure',
             category: 'security',
             lang: 'typescript',
@@ -434,6 +450,16 @@ export const module: Module = {
           exercise: {
             id: 'm7-ex-spot-idor',
             kind: 'spot',
+            safe: [
+              { line: 1, why: "`requireAuth` proves who is calling, which is good. It does not prove the invoice belongs to them, which is the gap on line 2." },
+              { line: 3, why: "Returning 404 for a missing record is correct. Scoping the query to the owner (line 2) would also make other people's invoices look missing." },
+              { line: 4, why: "Returning the invoice is fine once ownership has been checked. The flaw is that line 2 never checks it." },
+              { line: 7, why: "The route requires login, which is good. The problem is what the handler allows once the caller is in (lines 9 and 10)." },
+              { line: 9, why: "Converting the id with `Number()` is good practice. What is missing is a check that this id belongs to the caller; that gap is flagged at line 10 together with the open `data`." },
+              { line: 12, why: "Returning the updated record is fine. It would be better to return only the fields the client needs." },
+              { line: 15, why: "The route requires login, which is good. The danger is that any logged in user can delete any invoice (line 16)." },
+              { line: 17, why: "A 204 response after a delete is the usual convention. The authorization check before it is what is missing." },
+            ],
             title: 'Spot: authenticated but not authorised (IDOR)',
             category: 'security',
             lang: 'typescript',
@@ -486,6 +512,13 @@ export const module: Module = {
           exercise: {
             id: 'm7-ex-spot-jwt',
             kind: 'spot',
+            safe: [
+              { line: 1, why: "Importing a well known library is fine. The problems come from how it is called." },
+              { line: 5, why: "A login helper that issues a token is fine. The flaws are in the secret (line 3) and the signing options (line 6)." },
+              { line: 10, why: "Splitting the `Authorization` header to get the bearer token is the standard pattern. A malformed header produces no payload and is rejected on line 12." },
+              { line: 12, why: "Rejecting a missing or invalid payload is right. The catch is that `decode` (line 11) returns a payload even for a forged token, so this check does not stop an attack." },
+              { line: 13, why: "Attaching the payload to `req.user` is fine once the token has been verified. Without verification (line 11) it attaches whatever the attacker sent." },
+            ],
             title: 'Spot: weak JWT handling and a hard-coded secret',
             category: 'security',
             lang: 'typescript',
@@ -740,6 +773,12 @@ const report2 = page.map(o => ({ id: o.id, customer: o.customer.name, total: o.t
           exercise: {
             id: 'm7-ex-spot-secrets',
             kind: 'spot',
+            safe: [
+              { line: 7, why: "DEBUG level is noisy, and it is why line 10 gets written in production. The vulnerability itself is the key appearing in the log message. Set the level to INFO in production as well." },
+              { line: 11, why: "The call uses HTTPS, which is correct. What breaks its protection is `verify=False` on line 13." },
+              { line: 12, why: "Stripe accepts the secret key as basic auth, so this is the documented way to send it. The flaw is where the key comes from (line 4), not how it is sent." },
+              { line: 14, why: "Returning the response is fine. Checking the status code before trusting it would be better, but it is not a security flaw." },
+            ],
             title: 'Spot: secrets and unsafe transport in a deployment script',
             category: 'security',
             lang: 'python',

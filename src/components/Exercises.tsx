@@ -170,6 +170,17 @@ function Spot({ ex }: { ex: Extract<Exercise, { kind: 'spot' }> }) {
               <Rich md={i.why} /><div className="small"><b>Fix:</b> <Rich md={i.fix} /></div>
             </div>
           ))}
+          {wrong.length > 0 && (
+            <div style={{ marginTop: 12 }}>
+              <b>Lines you selected that are not issues</b>
+              {wrong.map((n) => (
+                <div key={n} style={{ marginTop: 8 }}>
+                  <b>Line {n}:</b> <code>{(ex.lines[n - 1] ?? '').trim() || '(blank line)'}</code>
+                  <Rich md={ex.safe?.find((s) => s.line === n)?.why ?? 'This line is not a vulnerability on its own. It only becomes risky because of the flagged lines above.'} />
+                </div>
+              ))}
+            </div>
+          )}
           {ex.explanation && <Rich md={ex.explanation} />}
         </Result>
       )}
