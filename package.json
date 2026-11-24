@@ -17,7 +17,7 @@
     "db:migrate": "node scripts/migrate-db.mjs",
     "check:links": "node scripts/check-links.mjs",
     "test:api": "tsx scripts/api-smoke.ts",
-    "dev:staging": "concurrently -n web,api -c cyan,magenta \"vite\" \"tsx --env-file=.env.staging watch server/index.ts\""
+    "dev:staging": "concurrently -n web,api -c cyan,magenta \"vite\" \"tsx watch --env-file=.env.staging server/index.ts\""
   },
   "dependencies": {
     "express": "4.19.2",
