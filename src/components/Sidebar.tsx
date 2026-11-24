@@ -75,9 +75,9 @@ function SidebarView({ active, open, collapsed, onToggleCollapsed, onHelp }: Pro
             ))}
           </div>
         ))}
-        {auth.user?.admin && (
+        {(auth.user?.role === 'admin' || auth.user?.role === 'manager') && (
           <div className="navgroup">
-            <div className="navhead lbl">Admin</div>
+            <div className="navhead lbl">{auth.user.role === 'admin' ? 'Admin' : 'Manager'}</div>
             <a href="#/admin" className={active === 'admin' ? 'active' : ''} title="Cohort progress" aria-current={active === 'admin' ? 'page' : undefined}>
               <Icon name="chart" /><span className="lbl">Cohort</span>
             </a>

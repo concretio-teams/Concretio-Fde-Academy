@@ -3,7 +3,8 @@ import express, { type NextFunction, type Request, type Response } from 'express
 import jwt from 'jsonwebtoken';
 import { randomUUID } from 'node:crypto';
 import { mergeProgress, sanitize } from '../shared/progress.js';
-import { getStore, type UserRecord } from './store.js';
+import { googleConfigured, newPkce, randomToken, realGoogle, type GoogleClient } from './google.js';
+import { getStore, ROLES, type Role, type UserRecord } from './store.js';
 
 const COOKIE = 'cca_session';
 const MAX_AGE_S = 60 * 60 * 24 * 30;
@@ -19,9 +20,12 @@ function secret(): string {
 const allowedDomains = () =>
   (process.env.ALLOWED_EMAIL_DOMAINS || '').split(',').map((d) => d.trim().toLowerCase().replace(/^@/, '')).filter(Boolean);
 
+// ADMIN_EMAILS is the break glass list: these people are always admins, whatever the database says.
 const adminEmails = () => (process.env.ADMIN_EMAILS || '').split(',').map((d) => d.trim().toLowerCase()).filter(Boolean);
-const isAdmin = (u: UserRecord) => adminEmails().includes(u.email);
-const publicUser = (u: UserRecord) => ({ id: u.id, email: u.email, name: u.name, admin: isAdmin(u) });
+const bootstrapRole = (email: string): Role => (adminEmails().includes(email) ? 'admin' : 'learner');
+const passwordLoginOn = () => process.env.AUTH_PASSWORD !== 'off';
+const publicUser = (u: UserRecord) => ({ id: u.id, email: u.email, name: u.name, role: u.role, admin: u.role === 'admin' });
+const OAUTH_COOKIE = 'cca_oauth';
 
 // Constant-time-ish login: compare against a dummy hash when the user does not exist.
 const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', 10);
@@ -51,7 +55,7 @@ function setSession(res: Response, userId: string) {
   res.cookie(COOKIE, token, { httpOnly: true, sameSite: 'lax', secure: isProd(), maxAge: MAX_AGE_S * 1000, path: '/' });
 }
 
-interface AuthedRequest extends Request { userId?: string }
+interface AuthedRequest extends Request { userId?: string; user?: UserRecord }
 
 async function requireUser(req: AuthedRequest, res: Response, next: NextFunction) {
   try {
@@ -84,7 +88,22 @@ const wrap = (fn: (req: AuthedRequest, res: Response) => Promise<unknown>) => (r
   fn(req, res).catch(next);
 };
 
-export function createApp() {
+const baseUrl = (req: Request) =>
+  (process.env.APP_URL || `${req.get('x-forwarded-proto') || req.protocol}://${req.get('x-forwarded-host') || req.get('host')}`).replace(/\/$/, '');
+
+/** Looks the user up on every request, so a role change or removal takes effect immediately. */
+const requireRole = (...allowed: Role[]) => async (req: AuthedRequest, res: Response, next: NextFunction) => {
+  try {
+    const user = await (await getStore()).findById(req.userId!);
+    if (!user) return res.status(401).json({ error: 'Account not found' });
+    if (!allowed.includes(user.role)) return res.status(403).json({ error: 'You do not have access to this' });
+    req.user = user;
+    next();
+  } catch (e) { next(e); }
+};
+
+export function createApp(opts: { google?: GoogleClient } = {}) {
+  const google = opts.google ?? realGoogle;
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
@@ -97,7 +116,53 @@ export function createApp() {
     res.json({ ok: true, storage: store.kind, domains: allowedDomains() });
   }));
 
+  app.get('/api/auth/config', (_req, res) => {
+    res.json({ google: googleConfigured() || !!opts.google, password: passwordLoginOn(), domains: allowedDomains() });
+  });
+
+  // ---- Google sign in (authorization code flow with PKCE, state and nonce) ----
+  app.get('/api/auth/google', (req, res) => {
+    if (!googleConfigured() && !opts.google) return res.status(503).json({ error: 'Google sign in is not configured' });
+    if (limited(`g:${req.ip}`, 30, 15 * 60_000)) return res.status(429).json({ error: 'Too many attempts. Try again later.' });
+    const state = randomToken(), nonce = randomToken(), { verifier, challenge } = newPkce();
+    const redirectUri = `${baseUrl(req)}/api/auth/google/callback`;
+    const token = jwt.sign({ state, nonce, verifier }, secret(), { expiresIn: 600 });
+    res.cookie(OAUTH_COOKIE, token, { httpOnly: true, sameSite: 'lax', secure: isProd(), maxAge: 600_000, path: '/api/auth/google' });
+    res.redirect(google.authUrl({ redirectUri, state, nonce, challenge, domainHint: allowedDomains()[0] }));
+  });
+
+  app.get('/api/auth/google/callback', wrap(async (req, res) => {
+    const root = baseUrl(req);
+    const fail = (why: string) => res.redirect(`${root}/#/login?error=${encodeURIComponent(why)}`);
+    res.clearCookie(OAUTH_COOKIE, { path: '/api/auth/google' });
+    if (req.query.error) return fail('Google sign in was cancelled');
+    let saved: { state: string; nonce: string; verifier: string };
+    try { saved = jwt.verify(readCookie(req, OAUTH_COOKIE) ?? '', secret()) as typeof saved; } catch { return fail('Sign in expired, please try again'); }
+    if (!saved.state || saved.state !== String(req.query.state ?? '')) return fail('Sign in could not be verified, please try again');
+    let id;
+    try {
+      id = await google.exchange({ code: String(req.query.code ?? ''), verifier: saved.verifier, redirectUri: `${root}/api/auth/google/callback`, nonce: saved.nonce });
+    } catch { return fail('Google sign in failed'); }
+    if (!id.emailVerified) return fail('Your Google email is not verified');
+    const domains = allowedDomains();
+    if (domains.length && !domains.includes(id.email.split('@')[1])) return fail(`Sign in is limited to: ${domains.map((d) => '@' + d).join(', ')}`);
+    const store = await getStore();
+    let user = await store.findByEmail(id.email);
+    if (!user) {
+      user = { id: randomUUID(), email: id.email, name: id.name.slice(0, 80), passwordHash: null, role: bootstrapRole(id.email), googleSub: id.sub, createdAt: Date.now() };
+      await store.createUser(user);
+    } else {
+      // Bind the account to one Google identity on first use; a different Google account with the same email is refused.
+      if (user.googleSub && user.googleSub !== id.sub) return fail('This email is linked to a different Google account');
+      if (!user.googleSub) { await store.updateUser(user.id, { googleSub: id.sub }); user.googleSub = id.sub; }
+      if (adminEmails().includes(user.email) && user.role !== 'admin') { await store.updateUser(user.id, { role: 'admin' }); user.role = 'admin'; }
+    }
+    setSession(res, user.id);
+    res.redirect(`${root}/#/`);
+  }));
+
   app.post('/api/auth/signup', wrap(async (req, res) => {
+    if (!passwordLoginOn()) return res.status(403).json({ error: 'Password sign up is turned off. Continue with Google.' });
     if (limited(`signup:${req.ip}`, 10, 15 * 60_000)) return res.status(429).json({ error: 'Too many attempts. Try again later.' });
     const email = String(req.body?.email ?? '').trim().toLowerCase();
     const password = String(req.body?.password ?? '');
@@ -108,13 +173,14 @@ export function createApp() {
     if (password.length < 8 || password.length > 128) return res.status(400).json({ error: 'Password must be 8 to 128 characters' });
     const store = await getStore();
     if (await store.findByEmail(email)) return res.status(409).json({ error: 'An account with this email already exists. Sign in instead.' });
-    const user: UserRecord = { id: randomUUID(), email, name, passwordHash: await bcrypt.hash(password, 10), createdAt: Date.now() };
+    const user: UserRecord = { id: randomUUID(), email, name, passwordHash: await bcrypt.hash(password, 10), role: bootstrapRole(email), googleSub: null, createdAt: Date.now() };
     try { await store.createUser(user); } catch { return res.status(409).json({ error: 'An account with this email already exists. Sign in instead.' }); }
     setSession(res, user.id);
     res.status(201).json({ user: publicUser(user) });
   }));
 
   app.post('/api/auth/login', wrap(async (req, res) => {
+    if (!passwordLoginOn()) return res.status(403).json({ error: 'Password sign in is turned off. Continue with Google.' });
     const email = String(req.body?.email ?? '').trim().toLowerCase();
     const password = String(req.body?.password ?? '');
     if (limited(`login:${req.ip}:${email}`, 8, 15 * 60_000)) return res.status(429).json({ error: 'Too many attempts. Try again later.' });
@@ -122,6 +188,7 @@ export function createApp() {
     const user = await store.findByEmail(email);
     const ok = await bcrypt.compare(password, user?.passwordHash ?? DUMMY_HASH);
     if (!user || !ok) return res.status(401).json({ error: 'Wrong email or password' });
+    if (adminEmails().includes(user.email) && user.role !== 'admin') { await store.updateUser(user.id, { role: 'admin' }); user.role = 'admin'; }
     setSession(res, user.id);
     res.json({ user: publicUser(user) });
   }));
@@ -132,8 +199,10 @@ export function createApp() {
   });
 
   app.get('/api/auth/me', requireUser, wrap(async (req, res) => {
-    const user = await (await getStore()).findById(req.userId!);
+    const store = await getStore();
+    const user = await store.findById(req.userId!);
     if (!user) return res.status(401).json({ error: 'Account not found' });
+    if (adminEmails().includes(user.email) && user.role !== 'admin') { await store.updateUser(user.id, { role: 'admin' }); user.role = 'admin'; }
     res.json({ user: publicUser(user) });
   }));
 
@@ -157,13 +226,29 @@ export function createApp() {
     res.json({ ok: true });
   }));
 
-  // Cohort view for leaders. Only emails listed in ADMIN_EMAILS may read it. Password hashes never leave the server.
-  app.get('/api/admin/cohort', requireUser, wrap(async (req, res) => {
+  // Cohort view. Admins and managers can read it; learners cannot. Password hashes never leave the server.
+  app.get('/api/admin/cohort', requireUser, requireRole('admin', 'manager'), wrap(async (_req, res) => {
+    const rows = await (await getStore()).listAll();
+    res.json({ learners: rows.map((r) => ({ id: r.user.id, name: r.user.name, email: r.user.email, role: r.user.role, joined: r.user.createdAt, updatedAt: r.progress?.updatedAt ?? 0, data: r.progress?.data ?? null })) });
+  }));
+
+  // Role management is admin only.
+  app.get('/api/admin/users', requireUser, requireRole('admin'), wrap(async (_req, res) => {
+    const rows = await (await getStore()).listAll();
+    res.json({ users: rows.map((r) => ({ id: r.user.id, name: r.user.name, email: r.user.email, role: r.user.role, joined: r.user.createdAt, google: !!r.user.googleSub })) });
+  }));
+
+  app.patch('/api/admin/users/:id/role', requireUser, requireRole('admin'), wrap(async (req, res) => {
+    const role = String(req.body?.role ?? '') as Role;
+    if (!ROLES.includes(role)) return res.status(400).json({ error: 'Role must be admin, manager or learner' });
+    if (req.params.id === req.userId) return res.status(400).json({ error: 'You cannot change your own role' });
     const store = await getStore();
-    const me = await store.findById(req.userId!);
-    if (!me || !isAdmin(me)) return res.status(403).json({ error: 'Admins only' });
-    const rows = await store.listAll();
-    res.json({ learners: rows.map((r) => ({ id: r.user.id, name: r.user.name, email: r.user.email, joined: r.user.createdAt, updatedAt: r.progress?.updatedAt ?? 0, data: r.progress?.data ?? null })) });
+    const target = await store.findById(req.params.id);
+    if (!target) return res.status(404).json({ error: 'User not found' });
+    if (adminEmails().includes(target.email)) return res.status(400).json({ error: 'This person is an admin through ADMIN_EMAILS and cannot be changed here' });
+    await store.updateUser(target.id, { role });
+    console.log(JSON.stringify({ audit: 'role_change', by: req.userId, user: target.id, from: target.role, to: role, at: new Date().toISOString() }));
+    res.json({ ok: true });
   }));
 
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found' }));

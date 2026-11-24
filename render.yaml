@@ -19,6 +19,16 @@ services:
       - key: ALLOWED_EMAIL_DOMAINS
         value: concret.io
       - key: ADMIN_EMAILS
-        sync: false # comma separated leader emails who may open the Cohort page
+        sync: false # comma separated break glass admins (always admin, cannot be demoted in the app)
+      - key: DATA_KEY
+        sync: false # 32 random bytes, base64. Encrypts emails, names and progress. BACK THIS UP: if lost, the data is unrecoverable.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: APP_URL
+        value: https://claude-code-academy.onrender.com
+      - key: AUTH_PASSWORD
+        value: "on" # set to "off" once Google sign in works, to remove password logins entirely
       - key: DATABASE_URL
         sync: false # Neon pooled connection string, entered in the dashboard

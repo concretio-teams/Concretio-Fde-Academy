@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { signOut, signIn, useAuth } from '../lib/auth';
 import { go } from '../lib/router';
 import { Badge, Button, Card, PageHead } from '../ui';
@@ -17,7 +17,11 @@ export function LoginPage() {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(() => new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('error') ?? '');
+  const [cfg, setCfg] = useState<{ google: boolean; password: boolean } | null>(null);
+  useEffect(() => {
+    fetch('/api/auth/config', { credentials: 'same-origin' }).then((r) => r.json()).then(setCfg).catch(() => setCfg({ google: false, password: true }));
+  }, []);
 
   if (auth.status === 'user' && auth.user) {
     return (
@@ -25,7 +29,7 @@ export function LoginPage() {
         <PageHead kicker="Account" title="You are signed in" />
         <Card>
           <div className="row spread">
-            <div><b>{auth.user.name}</b><div className="muted small">{auth.user.email}</div></div>
+            <div><b>{auth.user.name}</b><div className="muted small">{auth.user.email} <Badge>{auth.user.role ?? 'learner'}</Badge></div></div>
             <Badge tone={auth.sync === 'error' ? 'warn' : 'ok'}>{syncLabel(auth)}</Badge>
           </div>
           <p className="muted small" style={{ marginTop: 10 }}>Your progress, quiz scores and assignments sync automatically and follow you to any device.</p>
@@ -66,7 +70,15 @@ export function LoginPage() {
       </PageHead>
       <div style={{ maxWidth: 440 }}>
         <Card>
-          <form onSubmit={submit} className="stack" aria-label={mode === 'login' ? 'Sign in' : 'Create account'}>
+          {cfg?.google && (
+            <>
+              <a className="btn primary" href="/api/auth/google" style={{ display: 'block', textAlign: 'center' }}>Continue with Google</a>
+              {cfg.password && <p className="small muted" style={{ textAlign: 'center', margin: '10px 0' }}>or use a password</p>}
+              {!cfg.password && <p className="small muted" style={{ marginTop: 10 }}>Use your company Google account. Passwords are turned off.</p>}
+              {!cfg.password && error && <div className="feedback bad" role="alert">{error}</div>}
+            </>
+          )}
+          {(cfg === null || cfg.password) && <form onSubmit={submit} className="stack" aria-label={mode === 'login' ? 'Sign in' : 'Create account'}>
             {mode === 'signup' && (
               <label>Name<input type="text" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" /></label>
             )}
@@ -76,11 +88,11 @@ export function LoginPage() {
             </label>
             {error && <div className="feedback bad" role="alert">{error}</div>}
             <Button variant="primary" type="submit" disabled={busy || !email || !password}>{busy ? 'Please wait...' : mode === 'login' ? 'Sign in' : 'Create account'}</Button>
-          </form>
-          <p className="small muted" style={{ marginTop: 12 }}>
+          </form>}
+          {(cfg === null || cfg.password) && <p className="small muted" style={{ marginTop: 12 }}>
             {mode === 'login' ? 'New here? ' : 'Already have an account? '}
             <a href="#/login" onClick={(e) => { e.preventDefault(); setMode(mode === 'login' ? 'signup' : 'login'); setError(''); }}>{mode === 'login' ? 'Create an account' : 'Sign in'}</a>
-          </p>
+          </p>}
         </Card>
         <p className="small muted" style={{ marginTop: 10 }}>You can keep learning without an account. Signing in only adds cloud saving.</p>
       </div>

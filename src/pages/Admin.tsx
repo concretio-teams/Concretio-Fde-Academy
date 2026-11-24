@@ -10,6 +10,49 @@ interface Learner { id: string; name: string; email: string; joined: number; upd
 
 const day = (t: number) => (t ? new Date(t).toISOString().slice(0, 10) : 'never');
 
+interface UserRow { id: string; name: string; email: string; role: 'admin' | 'manager' | 'learner'; google: boolean }
+
+/** Admin only: see everyone and change their role. The server enforces this; the page just reflects it. */
+function Roles({ meId }: { meId: string }) {
+  const [users, setUsers] = useState<UserRow[] | null>(null);
+  const [msg, setMsg] = useState('');
+  const load = () => fetch('/api/admin/users', { credentials: 'same-origin' }).then((r) => r.json()).then((j) => setUsers(j.users)).catch(() => setMsg('Could not load users'));
+  useEffect(() => { void load(); }, []);
+  const change = async (id: string, role: string) => {
+    setMsg('');
+    const r = await fetch(`/api/admin/users/${id}/role`, { method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role }) });
+    const j = await r.json().catch(() => ({}));
+    setMsg(r.ok ? 'Role updated' : j.error || 'Could not update the role');
+    await load();
+  };
+  if (!users) return null;
+  return (
+    <div className="block">
+      <h3>Users and roles</h3>
+      <p className="small muted">Admin can manage roles and see everything. Manager can see the cohort, read only. Learner sees only their own progress.</p>
+      {msg && <div className="feedback" role="status">{msg}</div>}
+      <div style={{ overflowX: 'auto' }}>
+        <table className="tbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead><tr style={{ textAlign: 'left' }}><th>Person</th><th>Sign in</th><th>Role</th></tr></thead>
+          <tbody>
+            {users.map((u) => (
+              <tr key={u.id} style={{ borderTop: '1px solid var(--border)' }}>
+                <td><b>{u.name}</b><div className="small muted">{u.email}</div></td>
+                <td className="small">{u.google ? 'Google' : 'Password'}</td>
+                <td>
+                  <select value={u.role} disabled={u.id === meId} onChange={(e) => void change(u.id, e.target.value)} aria-label={`Role for ${u.name}`}>
+                    <option value="learner">Learner</option><option value="manager">Manager</option><option value="admin">Admin</option>
+                  </select>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export function AdminPage() {
   const auth = useAuth();
   const [rows, setRows] = useState<Learner[] | null>(null);
@@ -33,7 +76,7 @@ export function AdminPage() {
   }), [rows]);
 
   if (auth.status !== 'user') return <PageHead title="Cohort progress">Sign in with an admin account to see this page.</PageHead>;
-  if (err) return <PageHead title="Cohort progress">{err === 'Admins only' ? 'Your account is not an admin. Ask for your email to be added to ADMIN_EMAILS.' : err}</PageHead>;
+  if (err) return <PageHead title="Cohort progress">{/access/i.test(err) ? 'This page is for managers and admins. Ask an admin to change your role.' : err}</PageHead>;
   if (!rows) return <PageHead title="Cohort progress">Loading...</PageHead>;
 
   const csv = () => {
@@ -56,6 +99,8 @@ export function AdminPage() {
         <Card><b>Final passed</b><p className="stat"><b>{table.filter((r) => r.final).length}</b> <span className="small muted">average progress {avg}%</span></p></Card>
       </div>
       <div className="row" style={{ marginBottom: 10 }}><Button onClick={csv}>Download CSV</Button></div>
+      {auth.user?.role === 'admin' && <Roles meId={auth.user.id} />}
+      <h3>Progress</h3>
       <div style={{ overflowX: 'auto' }}>
         <table className="tbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead><tr style={{ textAlign: 'left' }}><th>Learner</th><th>Overall</th><th>Day 1</th><th>Final</th>{modules.map((m) => <th key={m.id}>M{m.number}</th>)}<th>Last active</th></tr></thead>

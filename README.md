@@ -36,7 +36,11 @@ Without `DATABASE_URL` the API stores accounts in `.data/db.json`. That is for l
 | `JWT_SECRET` | production | 16+ random characters, signs login cookies. Generate: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
 | `DATABASE_URL` | production | Neon Postgres connection string (use the pooled one). Tables are created automatically. |
 | `ALLOWED_EMAIL_DOMAINS` | recommended | Comma separated, for example `concret.io`. Empty allows any email. |
-| `ADMIN_EMAILS` | no | Comma separated emails that can open the **Cohort** page (`#/admin`) and download progress as CSV. Empty means nobody. |
+| `DATA_KEY` | production | 32 random bytes, base64. Encrypts personal data. Generate: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`. **Back it up.** |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | for Google sign in | From a Google Cloud OAuth client (Web application). Redirect URI: `<APP_URL>/api/auth/google/callback` |
+| `APP_URL` | for Google sign in | Public address, for example `https://claude-code-academy.onrender.com`. Locally `http://localhost:5173`. |
+| `ADMIN_EMAILS` | recommended | Break glass admins, comma separated. Everyone else starts as a learner; admins manage roles on the **Cohort** page (`#/admin`). |
+| `AUTH_PASSWORD` | no | `off` removes email and password sign in so Google is the only way in |
 | `PGSSL` | no | `disable` if your Postgres has no TLS |
 
 See `.env.example`.
@@ -91,9 +95,12 @@ The API runs as one serverless function (`api/index.ts`); `/api/*` is rewritten 
 
 ## Security notes
 
-- Passwords are hashed with bcrypt; sessions are signed, HttpOnly, SameSite=Lax cookies (Secure in production); state changing requests are same-origin checked; auth endpoints are rate limited per server instance.
-- **Email addresses are not verified.** The domain allowlist stops outsiders using other domains, but anyone could register someone else's `@concret.io` address. The data at stake is learning progress only. Add email verification or SSO before storing anything sensitive.
-- There is no password reset flow yet.
+- **Sign in:** Google (OpenID Connect, authorization code flow with PKCE, state and nonce, verified email, company domain enforced on the server, one Google identity bound per account). Email and password sign in still works until you set `AUTH_PASSWORD=off`. Sessions are signed, HttpOnly, SameSite=Lax cookies (Secure in production); state changing requests are same-origin checked; auth endpoints are rate limited per server instance.
+- **Roles (RBAC):** `learner` sees only their own progress; `manager` can read the cohort (read only); `admin` can also change roles. The role is looked up in the database on every request, so a change takes effect at once. People in `ADMIN_EMAILS` are always admins and cannot be demoted in the app. Role changes are logged as `audit` lines. Admins cannot change their own role.
+- **Data at rest:** emails, names, Google ids and all progress (including assignment notes) are encrypted with AES-256-GCM using `DATA_KEY`; emails are looked up through a keyed hash (HMAC-SHA256) so no plaintext email is stored. Passwords are hashed with bcrypt, and Google accounts store no password at all. The app refuses to start in production without `DATA_KEY`. Existing plaintext rows are encrypted automatically on the first start, in one transaction.
+- **Back up `DATA_KEY`.** It is the only thing that can decrypt the data. If it is lost the data cannot be recovered; if it leaks, anyone with database access can read it. Do not rotate it without a migration.
+- What encryption does not cover: someone who can read both the database and the server's environment variables can decrypt everything. Keep the two in different accounts where you can, and limit who can open the Render environment tab and the Neon project.
+- There is no password reset flow, which is one more reason to move to Google only.
 
 ## Structure
 
