@@ -1,9 +1,13 @@
-// Checks every resource link in src/content/resources.ts. Run: npm run check:links
+// Checks every resource link in src/content/resources.ts and the programme links in the capstone lesson. Run: npm run check:links
 // Exit code 1 if any link is broken, so CI can fail on it. YouTube links are checked with oEmbed.
 import { readFile } from 'node:fs/promises';
 
 const src = await readFile(new URL('../src/content/resources.ts', import.meta.url), 'utf8');
-const urls = [...src.matchAll(/url:\s*'([^']+)'/g)].map((m) => m[1]);
+// The capstone lesson links to public FDE programme pages in markdown, so check those too.
+const m9 = await readFile(new URL('../src/content/modules/m9.ts', import.meta.url), 'utf8');
+const fromResources = [...src.matchAll(/url:\s*'([^']+)'/g)].map((m) => m[1]);
+const fromCapstone = [...m9.matchAll(/\]\((https:[^)]+)\)/g)].map((m) => m[1]);
+const urls = [...new Set([...fromResources, ...fromCapstone])];
 let bad = 0;
 
 async function check(url) {

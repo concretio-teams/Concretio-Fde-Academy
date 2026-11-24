@@ -15,7 +15,7 @@ export function PathPage() {
   const isNext = (href: string) => nx.href === href || nx.href === `${href}/quiz`;
   return (
     <>
-      <PageHead kicker="Learning path" title="Eight modules, one direction">
+      <PageHead kicker="Learning path" title="Nine modules, one direction">
         Work top to bottom. Each module builds on the ones before it; the path shows what to finish first.
         Total time: {hours(totalMinutes().lessons + totalMinutes().assignments)}. Not sure where to begin? Try the <a href={href('start')}>Start here</a> page.
       </PageHead>

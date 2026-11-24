@@ -24,6 +24,7 @@ let index: Entry[] | null = null;
 export const PAGES: [string, string, string][] = [
   ['start', 'Start here', 'Pick your level and see how the academy works'],
   ['', 'Dashboard', 'Progress, next step and achievements'],
+  ['journey', 'Journey', 'Your step by step tree: done, next and still to do'],
   ['path', 'Learning path', 'All modules and their order'],
   ['playground', 'Playground', 'Hands-on exercises'],
   ['knowledge', 'Knowledge check', 'Quizzes and scores'],

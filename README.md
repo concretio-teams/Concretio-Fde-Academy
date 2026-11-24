@@ -4,10 +4,12 @@ Interactive, self-paced academy that turns developers into confident AI-assisted
 
 ## What is inside
 
-- 8 modules, 24 lessons, 148 scenario based quiz questions (plus 24 in the final exam)
+- 9 modules, 25 lessons, 154 scenario based quiz questions (plus 24 in the final exam), ending in an end to end capstone
 - 32 playground exercises (pick the command, order the workflow, fix the prompt, find the vulnerability)
 - 12 practical assignments and a final assessment (theory exam plus practical tasks)
 - Click-to-explore Mermaid diagrams, click-to-learn concepts, prompt builder, simulated Claude Code interface
+- **Capstone (Module 9):** one client case, Northwind Parcel, delivered end to end in seven steps by developers, ops, QA and engineering leads. The starter is `starters/fde-capstone` (messy data, a legacy report with hidden defects, a mentor answer key). The lesson also compares it with public FDE programmes (Product School, Maven, Xebia); their figures were taken from their own pages on 2026-11-24 and are linked, not copied.
+- **Journey tree:** the Journey page shows every step in order, what is done, and where you are now.
 - **Start here page:** three starting levels (new, uses AI assistants, already uses Claude Code) so nobody has to guess where to begin. Each lesson opens with a one sentence "In short" summary, and the path shows honest time estimates.
 - **Glossary:** every term used in the lessons, searchable, in plain language.
 - **Starter projects:** `starters/shop-app` (five seeded bugs, used by Modules 2, 4 and 6, with `BUG_REPORTS.md` for learners and `ANSWERS.md` as the answer key) and `starters/task-tracker` (a small layered API to explore and plan a feature on, used by Module 3). Both have no dependencies, and each assignment links to its folder on GitHub.

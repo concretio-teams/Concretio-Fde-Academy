@@ -1,0 +1,84 @@
+shipment_id,customer,carrier,service_level,promised_date,shipped_at,delivered_at,status,penalty_eur
+NP-1001,Aldersen Foods,SwiftLine,STANDARD,2026-03-08,2026-03-05,2026-03-08,delivered,0
+NP-1002,Cobalt Cycles,NorthRoute,STANDARD,2026-03-11,2026-03-08,2026-03-14,delivered,15
+NP-1003,Delmar Print,SwiftLine,STANDARD,12/03/2026,2026-03-09,2026-03-12,delivered,0
+NP-1004,Delmar Print,swiftline ,EXPRESS,2026-03-17,2026-03-16,2026-03-18,delivered,50
+NP-1005,Brightpath Pharma,NorthRoute,EXPRESS,2026-03-16,2026-03-15,2026-03-15,delivered,0
+NP-1006,Aldersen Foods,,STANDARD,2026-03-13,2026-03-10,2026-03-13,delivered,0
+NP-1007,Fjord Tools,EuroHaul,STANDARD,2026-03-16,2026-03-13,2026-03-17,delivered,15
+NP-1008,Eastgate Retail,SwiftLine,EXPRESS,2026-03-09,2026-03-08,2026-03-09,delivered,0
+NP-1009,Aldersen Foods,SwiftLine,STANDARD,2026-03-21,2026-03-18,2026-03-22,delivered,15
+NP-1010,Aldersen Foods,NorthRoute,STANDARD,24/03/2026,2026-03-21,2026-03-26,delivered,15
+NP-1011,Brightpath Pharma,NorthRoute,STANDARD,2026-03-17,2026-03-14,2026-03-18,delivered,15
+NP-1012,Brightpath Pharma,NorthRoute,STANDARD,2026-03-13,2026-03-10,2026-03-16,delivered,15
+NP-1013,Cobalt Cycles,SwiftLine,STANDARD,2026-03-23,2026-03-20,2026-03-22,delivered,0
+NP-1014,Aldersen Foods,EuroHaul,STANDARD,2026-03-13,2026-03-10,2026-03-14,delivered,15
+NP-1015,Aldersen Foods,SwiftLine,STANDARD,2026-03-12,2026-03-09,2026-03-13,delivered,15
+NP-1016,Delmar Print,NorthRoute,STANDARD,2026-03-05,2026-03-02,2026-03-08,delivered,15
+NP-1017,Cobalt Cycles,NorthRoute,STANDARD,07/03/2026,2026-03-04,2026-03-10,delivered,15
+NP-1018,Aldersen Foods,SwiftLine,STANDARD,2026-03-12,2026-03-09,2026-03-12,delivered,0
+NP-1019,Aldersen Foods,,STANDARD,2026-03-18,2026-03-15,2026-03-19,delivered,15
+NP-1020,Fjord Tools,EuroHaul,STANDARD,2026-03-12,2026-03-09,2026-03-13,delivered,15
+NP-1021,Fjord Tools,swiftline ,STANDARD,2026-03-18,2026-03-15,2026-03-17,delivered,0
+NP-1022,Eastgate Retail,SwiftLine,STANDARD,2026-03-10,2026-03-07,,delivered,0
+NP-1023,Fjord Tools,EuroHaul,STANDARD,2026-03-06,2026-03-03,2026-03-07,delivered,15
+NP-1024,Eastgate Retail,NorthRoute,STANDARD,19/03/2026,2026-03-16,2026-03-21,delivered,15
+NP-1025,Delmar Print,NorthRoute,STANDARD,2026-03-23,2026-03-20,,in_transit,0
+NP-1026,Fjord Tools,SwiftLine,STANDARD,2026-03-19,2026-03-16,2026-03-20,delivered,15
+NP-1027,Aldersen Foods,EuroHaul,STANDARD,2026-03-15,2026-03-12,2026-03-16,delivered,15
+NP-1028,Eastgate Retail,NorthRoute,EXPRESS,2026-03-18,2026-03-17,2026-03-17,delivered,0
+NP-1029,Eastgate Retail,SwiftLine,STANDARD,2026-03-07,2026-03-04,2026-03-07,delivered,0
+NP-1030,Brightpath Pharma,SwiftLine,STANDARD,2026-03-23,2026-03-20,,in_transit,0
+NP-1031,Brightpath Pharma,SwiftLine,STANDARD,10/03/2026,2026-03-07,2026-03-09,delivered,0
+NP-1032,Aldersen Foods,,STANDARD,2026-03-22,2026-03-19,2026-03-22,delivered,0
+NP-1033,Aldersen Foods,SwiftLine,STANDARD,2026-03-10,2026-03-07,2026-03-11,delivered,15
+NP-1034,Cobalt Cycles,NorthRoute,STANDARD,2026-03-09,2026-03-06,2026-03-11,delivered,15
+NP-1035,Fjord Tools,NorthRoute,EXPRESS,2026-03-13,2026-03-12,2026-03-12,delivered,0
+NP-1036,Eastgate Retail,EuroHaul,EXPRESS,2026-03-03,2026-03-02,2026-03-02,delivered,0
+NP-1037,Eastgate Retail,SwiftLine,STANDARD,2026-03-19,2026-03-16,2026-03-18,delivered,0
+NP-1038,Fjord Tools,swiftline ,STANDARD,18/03/2026,2026-03-15,2026-03-18,delivered,0
+NP-1039,Aldersen Foods,SwiftLine,EXPRESS,2026-03-11,2026-03-10,2026-03-09,delivered,0
+NP-1040,Brightpath Pharma,SwiftLine,STANDARD,2026-03-24,2026-03-21,,in_transit,0
+NP-1041,Cobalt Cycles,SwiftLine,EXPRESS,2026-03-13,2026-03-12,,delivered,50
+NP-1042,Cobalt Cycles,EuroHaul,STANDARD,2026-03-15,2026-03-12,2026-03-15,delivered,0
+NP-1043,Fjord Tools,EuroHaul,EXPRESS,2026-03-05,2026-03-04,2026-03-05,delivered,0
+NP-1044,Cobalt Cycles,EuroHaul,STANDARD,2026-03-07,2026-03-04,2026-03-07,delivered,0
+NP-1045,Eastgate Retail,,EXPRESS,13/03/2026,2026-03-12,2026-03-14,delivered,50
+NP-1046,Brightpath Pharma,EuroHaul,STANDARD,2026-03-16,2026-03-13,2026-03-15,delivered,0
+NP-1047,Delmar Print,SwiftLine,STANDARD,2026-03-06,2026-03-03,2026-03-04,delivered,0
+NP-1048,Fjord Tools,SwiftLine,STANDARD,2026-03-13,2026-03-10,2026-03-13,delivered,0
+NP-1049,Cobalt Cycles,SwiftLine,STANDARD,2026-03-11,2026-03-08,2026-03-10,delivered,0
+NP-1050,Delmar Print,NorthRoute,STANDARD,2026-03-17,2026-03-14,2026-03-20,delivered,15
+NP-1051,Delmar Print,SwiftLine,STANDARD,2026-03-24,2026-03-21,,in_transit,0
+NP-1052,Fjord Tools,SwiftLine,STANDARD,11/03/2026,2026-03-08,2026-03-12,delivered,15
+NP-1053,Fjord Tools,SwiftLine,EXPRESS,2026-03-04,2026-03-03,2026-03-04,delivered,0
+NP-1054,Aldersen Foods,NorthRoute,STANDARD,2026-03-10,2026-03-07,2026-03-11,delivered,15
+NP-1055,Brightpath Pharma,eurohaul ,STANDARD,2026-03-22,2026-03-19,,in_transit,0
+NP-1056,Fjord Tools,NorthRoute,STANDARD,2026-03-23,2026-03-20,,in_transit,0
+NP-1057,Fjord Tools,SwiftLine,EXPRESS,2026-03-21,2026-03-20,,in_transit,0
+NP-1058,Delmar Print,,EXPRESS,2026-03-03,2026-03-02,2026-03-03,delivered,0
+NP-1059,Brightpath Pharma,NorthRoute,EXPRESS,11/03/2026,2026-03-10,2026-03-10,delivered,0
+NP-1060,Fjord Tools,SwiftLine,STANDARD,2026-03-22,2026-03-19,,in_transit,0
+NP-1061,Fjord Tools,SwiftLine,EXPRESS,2026-03-19,2026-03-18,2026-03-20,delivered,50
+NP-1062,Fjord Tools,SwiftLine,EXPRESS,2026-03-08,2026-03-07,2026-03-09,delivered,50
+NP-1063,Cobalt Cycles,SwiftLine,STANDARD,2026-03-19,2026-03-16,2026-03-20,delivered,15
+NP-1064,Cobalt Cycles,SwiftLine,STANDARD,2026-03-19,2026-03-16,2026-03-19,delivered,0
+NP-1065,Aldersen Foods,SwiftLine,EXPRESS,2026-03-21,2026-03-20,,in_transit,0
+NP-1066,Aldersen Foods,NorthRoute,STANDARD,24/03/2026,2026-03-21,,in_transit,0
+NP-1067,Fjord Tools,SwiftLine,STANDARD,2026-03-05,2026-03-02,2026-03-06,delivered,15
+NP-1068,Eastgate Retail,SwiftLine,STANDARD,2026-03-15,2026-03-12,2026-03-15,delivered,0
+NP-1069,Fjord Tools,EuroHaul,STANDARD,2026-03-20,2026-03-17,2026-03-20,delivered,0
+NP-1070,Delmar Print,SwiftLine,EXPRESS,2026-03-18,2026-03-17,2026-03-16,delivered,0
+NP-1071,Cobalt Cycles,,STANDARD,2026-03-12,2026-03-09,2026-03-13,delivered,15
+NP-1072,Aldersen Foods,swiftline ,STANDARD,2026-03-10,2026-03-07,2026-03-11,delivered,15
+NP-1073,Eastgate Retail,EuroHaul,STANDARD,05/03/2026,2026-03-02,2026-03-06,delivered,15
+NP-1074,Fjord Tools,EuroHaul,EXPRESS,2026-03-20,2026-03-19,2026-03-20,delivered,0
+NP-1075,Eastgate Retail,SwiftLine,EXPRESS,2026-03-03,2026-03-02,2026-03-03,delivered,0
+NP-1076,Delmar Print,NorthRoute,STANDARD,2026-03-11,2026-03-08,2026-03-11,delivered,0
+NP-1077,Fjord Tools,EuroHaul,STANDARD,2026-03-12,2026-03-09,2026-03-12,delivered,0
+NP-1078,Brightpath Pharma,SwiftLine,EXPRESS,2026-03-16,2026-03-15,2026-03-17,delivered,50
+NP-1079,Fjord Tools,NorthRoute,STANDARD,2026-03-07,2026-03-04,2026-03-07,delivered,0
+NP-1080,Delmar Print,EuroHaul,STANDARD,20/03/2026,2026-03-17,2026-03-21,delivered,15
+NP-1004,Delmar Print,swiftline ,EXPRESS,2026-03-17,2026-03-16,2026-03-18,delivered,50
+NP-1011,Brightpath Pharma,NorthRoute,STANDARD,2026-03-17,2026-03-14,2026-03-18,delivered,15
+NP-1030,Brightpath Pharma,SwiftLine,STANDARD,2026-03-23,2026-03-20,,in_transit,0
