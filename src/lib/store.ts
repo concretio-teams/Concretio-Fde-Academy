@@ -2,8 +2,8 @@ import { useSyncExternalStore } from 'react';
 
 const KEY = 'cca-progress-v1';
 
-import { emptyProgress, sanitize, type AssignmentState, type FinalState, type ProgressData, type QuizResult, type Track } from '../../shared/progress';
-export type { AssignmentState, FinalState, QuizResult, Track };
+import { emptyProgress, sanitize, type AssignmentState, type FinalState, type Goal, type ProgressData, type QuizResult, type TimeBudget, type Track } from '../../shared/progress';
+export type { AssignmentState, FinalState, Goal, QuizResult, TimeBudget, Track };
 export type Progress = ProgressData;
 
 const prefersDark = typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches;
@@ -50,6 +50,8 @@ export function useProgress(): Progress {
 export const actions = {
   setTheme(theme: 'light' | 'dark') { commit({ ...state, theme }); },
   setTrack(track: Track | null) { commit({ ...state, track }); },
+  /** Save the answers from the first sign-in questions. Pass nulls to skip. */
+  setProfile(goal: Goal | null, time: TimeBudget | null) { commit({ ...state, profile: { goal, time, done: true, at: Date.now() } }); },
   viewLesson(id: string, title: string) {
     const first = !state.lessonsViewed[id];
     commit({ ...state, lessonsViewed: { ...state.lessonsViewed, [id]: Date.now() } }, first ? `Started lesson: ${title}` : undefined);

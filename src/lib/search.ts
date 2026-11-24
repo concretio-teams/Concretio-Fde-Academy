@@ -25,6 +25,8 @@ export const PAGES: [string, string, string][] = [
   ['start', 'Start here', 'Pick your level and see how the academy works'],
   ['', 'Dashboard', 'Progress, next step and achievements'],
   ['journey', 'Journey', 'Your step by step tree: done, next and still to do'],
+  ['setup', 'My plan and answers', 'Change your level, goal and weekly time'],
+  ['tiers', 'Career tiers', 'The four FDE tiers: outcome, hours, gates and what the academy covers (draft)'],
   ['path', 'Learning path', 'All modules and their order'],
   ['playground', 'Playground', 'Hands-on exercises'],
   ['knowledge', 'Knowledge check', 'Quizzes and scores'],
