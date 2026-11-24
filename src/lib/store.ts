@@ -59,11 +59,11 @@ export const actions = {
   markLesson(id: string, title: string, done: boolean) {
     commit({ ...state, lessonsManual: { ...state.lessonsManual, [id]: done } }, done ? `Completed lesson: ${title}` : undefined);
   },
-  recordQuiz(id: string, title: string, score: number, total: number) {
+  recordQuiz(id: string, title: string, score: number, total: number, answers?: number[]) {
     const prev = state.quiz[id];
     const r: QuizResult = {
       best: Math.max(prev?.best ?? 0, score), last: score, total,
-      attempts: (prev?.attempts ?? 0) + 1, at: Date.now(),
+      attempts: (prev?.attempts ?? 0) + 1, at: Date.now(), ...(answers ? { answers } : {}),
     };
     commit({ ...state, quiz: { ...state.quiz, [id]: r } }, `Quiz ${score}/${total}: ${title}`);
   },
@@ -78,23 +78,23 @@ export const actions = {
   toggleCheck(id: string, idx: number) {
     const a = state.assignments[id] ?? { checked: [], done: false, notes: '' };
     const checked = a.checked.includes(idx) ? a.checked.filter((i) => i !== idx) : [...a.checked, idx];
-    commit({ ...state, assignments: { ...state.assignments, [id]: { ...a, checked, done: a.done && !a.checked.includes(idx) } } });
+    commit({ ...state, assignments: { ...state.assignments, [id]: { ...a, checked, done: a.done && !a.checked.includes(idx), u: Date.now() } } });
   },
   setNotes(id: string, notes: string) {
     const a = state.assignments[id] ?? { checked: [], done: false, notes: '' };
-    commit({ ...state, assignments: { ...state.assignments, [id]: { ...a, notes } } });
+    commit({ ...state, assignments: { ...state.assignments, [id]: { ...a, notes, u: Date.now() } } });
   },
   completeAssignment(id: string, title: string, done: boolean) {
     const a = state.assignments[id] ?? { checked: [], done: false, notes: '' };
     commit(
-      { ...state, assignments: { ...state.assignments, [id]: { ...a, done, at: done ? Date.now() : undefined } } },
+      { ...state, assignments: { ...state.assignments, [id]: { ...a, done, at: done ? Date.now() : undefined, u: Date.now() } } },
       done ? `Completed assignment: ${title}` : undefined,
     );
   },
   togglePractical(taskId: string, idx: number) {
     const cur = state.finalPractical[taskId] ?? [];
     const next = cur.includes(idx) ? cur.filter((i) => i !== idx) : [...cur, idx];
-    commit({ ...state, finalPractical: { ...state.finalPractical, [taskId]: next } });
+    commit({ ...state, finalPractical: { ...state.finalPractical, [taskId]: next }, finalPracticalAt: { ...state.finalPracticalAt, [taskId]: Date.now() } });
   },
   saveFinal(score: number, total: number, passMark: number) {
     const pct = total ? Math.round((score / total) * 100) : 0;
