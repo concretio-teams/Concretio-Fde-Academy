@@ -1,3 +1,4 @@
+import bcrypt from 'bcryptjs';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { randomUUID } from 'node:crypto';
@@ -22,6 +23,9 @@ const allowedDomains = () =>
 const adminEmails = () => (process.env.ADMIN_EMAILS || '').split(',').map((d) => d.trim().toLowerCase()).filter(Boolean);
 const isAdmin = (u: UserRecord) => adminEmails().includes(u.email);
 const publicUser = (u: UserRecord) => ({ id: u.id, email: u.email, name: u.name, admin: isAdmin(u) });
+
+// Constant-time-ish login: compare against a dummy hash when the user does not exist or has no password.
+const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', 10);
 
 const OAUTH_COOKIE = 'cca_oauth';
 const baseUrl = (req: Request) =>
@@ -99,10 +103,39 @@ export function createApp(opts: { google?: GoogleClient } = {}) {
     res.json({ ok: true, storage: store.kind, domains: allowedDomains() });
   }));
 
-  // Google is the only way to sign in. There are no passwords to store, reset or leak.
+  // Two ways in: Google, or email and password. They lead to the same account (matched by email).
   app.get('/api/auth/config', (_req, res) => {
-    res.json({ google: googleConfigured() || !!opts.google, domains: allowedDomains() });
+    res.json({ google: googleConfigured() || !!opts.google, password: true, domains: allowedDomains() });
   });
+
+  app.post('/api/auth/signup', wrap(async (req, res) => {
+    if (limited(`signup:${req.ip}`, 10, 15 * 60_000)) return res.status(429).json({ error: 'Too many attempts. Try again later.' });
+    const email = String(req.body?.email ?? '').trim().toLowerCase();
+    const password = String(req.body?.password ?? '');
+    const name = String(req.body?.name ?? '').trim().slice(0, 80) || email.split('@')[0];
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200) return res.status(400).json({ error: 'Enter a valid email address' });
+    const domains = allowedDomains();
+    if (domains.length && !domains.includes(email.split('@')[1])) return res.status(403).json({ error: `Sign up is limited to: ${domains.map((d) => '@' + d).join(', ')}` });
+    if (password.length < 8 || password.length > 128) return res.status(400).json({ error: 'Password must be 8 to 128 characters' });
+    const store = await getStore();
+    const exists = 'An account with this email already exists. Sign in instead, or use Continue with Google.';
+    if (await store.findByEmail(email)) return res.status(409).json({ error: exists });
+    const user: UserRecord = { id: randomUUID(), email, name, passwordHash: await bcrypt.hash(password, 10), googleSub: null, createdAt: Date.now() };
+    try { await store.createUser(user); } catch { return res.status(409).json({ error: exists }); }
+    setSession(res, user.id);
+    res.status(201).json({ user: publicUser(user) });
+  }));
+
+  app.post('/api/auth/login', wrap(async (req, res) => {
+    const email = String(req.body?.email ?? '').trim().toLowerCase();
+    const password = String(req.body?.password ?? '');
+    if (limited(`login:${req.ip}:${email}`, 8, 15 * 60_000)) return res.status(429).json({ error: 'Too many attempts. Try again later.' });
+    const user = await (await getStore()).findByEmail(email);
+    const ok = await bcrypt.compare(password, user?.passwordHash ?? DUMMY_HASH);
+    if (!user || !user.passwordHash || !ok) return res.status(401).json({ error: 'Wrong email or password. If you signed up with Google, use Continue with Google.' });
+    setSession(res, user.id);
+    res.json({ user: publicUser(user) });
+  }));
 
   // Authorization code flow with PKCE, state and nonce.
   app.get('/api/auth/google', (req, res) => {
@@ -135,8 +168,8 @@ export function createApp(opts: { google?: GoogleClient } = {}) {
       user = { id: randomUUID(), email: id.email, name: id.name.slice(0, 80), passwordHash: null, googleSub: id.sub, createdAt: Date.now() };
       await store.createUser(user);
     } else {
-      // An account made earlier with a password is claimed by its owner's Google sign in, and keeps its progress.
-      // After that the account is bound to that one Google identity.
+      // Same email, same account: someone who signed up with a password can also use Google, and keeps their progress.
+      // Their password keeps working. Once linked, the account only accepts that one Google identity.
       if (user.googleSub && user.googleSub !== id.sub) return fail('This email is linked to a different Google account');
       if (!user.googleSub) await store.setGoogleSub(user.id, id.sub);
     }

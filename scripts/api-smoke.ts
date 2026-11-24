@@ -1,4 +1,5 @@
 // End to end API test against the real Express app with a temporary JSON store and a fake Google. Run: npm run test:api
+import bcrypt from 'bcryptjs';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -12,9 +13,10 @@ process.env.ALLOWED_EMAIL_DOMAINS = 'concret.io';
 process.env.ADMIN_EMAILS = 'boss@concret.io';
 process.env.NODE_ENV = 'test';
 
-// An account made before Google sign in existed (password based), with progress. Signing in with Google must claim it.
+// An account made before Google sign in existed (password based), with progress. It must keep working with its
+// password, and Google sign in with the same email must reach the same account.
 writeFileSync(DATA_FILE, JSON.stringify({
-  users: [{ id: 'old-user', email: 'old@concret.io', name: 'Old Timer', passwordHash: '$2a$10$legacyhashlegacyhashlegacyhashlegacyhashlegacyhash', createdAt: 1 }],
+  users: [{ id: 'old-user', email: 'old@concret.io', name: 'Old Timer', passwordHash: bcrypt.hashSync('oldpassword1', 10), googleSub: null, createdAt: 1 }],
   progress: { 'old-user': { data: { exercises: { legacy: { done: true, attempts: 1 } } }, updatedAt: 1 } },
 }));
 
@@ -69,9 +71,17 @@ try {
   check('config says google is on', (await a.call('GET', '/api/auth/config')).j?.google === true);
   check('progress needs login', (await a.call('GET', '/api/progress')).s === 401);
 
-  // ---- there is no password route any more ----
-  check('password signup is gone', (await a.call('POST', '/api/auth/signup', { email: 'a@concret.io', password: 'longenough1' })).s === 404);
-  check('password login is gone', (await a.call('POST', '/api/auth/login', { email: 'old@concret.io', password: 'x' })).s === 404);
+  check('config offers both ways in', (await a.call('GET', '/api/auth/config')).j?.password === true);
+
+  // ---- email and password still work, for new and existing people ----
+  check('signup rejects other domains', (await a.call('POST', '/api/auth/signup', { email: 'x@gmail.com', password: 'longenough1' })).s === 403);
+  check('signup rejects short password', (await a.call('POST', '/api/auth/signup', { email: 'a@concret.io', password: 'short' })).s === 400);
+  const pw = new Client();
+  check('password signup works', (await pw.call('POST', '/api/auth/signup', { email: 'pat@concret.io', password: 'longenough1', name: 'Pat Password' })).s === 201);
+  check('duplicate signup is refused', (await new Client().call('POST', '/api/auth/signup', { email: 'pat@concret.io', password: 'longenough1' })).s === 409);
+  check('wrong password is refused', (await new Client().call('POST', '/api/auth/login', { email: 'pat@concret.io', password: 'wrongwrong1' })).s === 401);
+  const oldPw = new Client();
+  check('an existing user still signs in with their password', (await oldPw.call('POST', '/api/auth/login', { email: 'old@concret.io', password: 'oldpassword1' })).s === 200 && (await oldPw.call('GET', '/api/progress')).j?.data?.exercises?.legacy?.done === true);
 
   // ---- Google sign in ----
   const start = await a.call('GET', '/api/auth/google');
@@ -94,13 +104,16 @@ try {
   const e = new Client();
   check('google error is handled', (await e.call('GET', '/api/auth/google/callback?error=access_denied')).loc.includes('error='));
 
-  // ---- an old password account is claimed by its owner and keeps its progress ----
+  // ---- both ways lead to the same account ----
   const old = new Client();
-  check('old account signs in with google', (await old.google('old')).s === 302 && (await old.call('GET', '/api/auth/me')).j?.user?.id === 'old-user');
-  check('old progress is still there', (await old.call('GET', '/api/progress')).j?.data?.exercises?.legacy?.done === true);
+  check('google reaches the same account as the password', (await old.google('old')).s === 302 && (await old.call('GET', '/api/auth/me')).j?.user?.id === 'old-user');
+  check('old progress is there through google too', (await old.call('GET', '/api/progress')).j?.data?.exercises?.legacy?.done === true);
+  check('the password still works after linking google', (await new Client().call('POST', '/api/auth/login', { email: 'old@concret.io', password: 'oldpassword1' })).s === 200);
   const imp = new Client(); const rI = await imp.google('oldImpostor');
-  check('a different google account cannot take over a bound email', rI.loc.includes('error=') && (await imp.call('GET', '/api/auth/me')).s === 401);
-  check('the owner can still sign in afterwards', (await new Client().google('old')).s === 302);
+  check('a different google account cannot take over a linked email', rI.loc.includes('error=') && (await imp.call('GET', '/api/auth/me')).s === 401);
+  check('the owner can still sign in with google afterwards', (await new Client().google('old')).s === 302);
+  check('a google only account has no password to guess', (await new Client().call('POST', '/api/auth/login', { email: 'lea@concret.io', password: 'anything12' })).s === 401);
+  check('signing up with an email that exists via google is refused', (await new Client().call('POST', '/api/auth/signup', { email: 'lea@concret.io', password: 'longenough1' })).s === 409);
 
   // ---- progress sync ----
   const data = { theme: 'dark', lessonsViewed: {}, lessonsManual: {}, quiz: {}, exercises: { e1: { done: true, attempts: 1 } }, assignments: {}, final: null, finalPractical: {}, days: ['2026-01-01'], history: [] };
@@ -116,7 +129,7 @@ try {
   const boss = new Client(); await boss.google('boss');
   check('admin email is flagged admin', (await boss.call('GET', '/api/auth/me')).j?.user?.admin === true);
   const cohort = await boss.call('GET', '/api/admin/cohort');
-  check('admin can read the cohort', cohort.s === 200 && cohort.j?.learners?.length === 3, String(cohort.j?.learners?.length));
+  check('admin can read the cohort', cohort.s === 200 && cohort.j?.learners?.length === 4, String(cohort.j?.learners?.length));
   check('cohort never leaks password hashes or google ids', !JSON.stringify(cohort.j).includes('passwordHash') && !JSON.stringify(cohort.j).includes('$2a$') && !JSON.stringify(cohort.j).includes('g-lea'));
 
   // ---- other protections ----

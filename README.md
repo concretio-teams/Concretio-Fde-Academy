@@ -14,7 +14,7 @@ Interactive, self-paced academy that turns developers into confident AI-assisted
 - **Glossary:** every term used in the lessons, searchable, in plain language.
 - **Starter projects:** `starters/shop-app` (five seeded bugs, used by Modules 2, 4 and 6, with `BUG_REPORTS.md` for learners and `ANSWERS.md` as the answer key) and `starters/task-tracker` (a small layered API to explore and plan a feature on, used by Module 3). Both have no dependencies, and each assignment links to its folder on GitHub.
 - **Mentor summary:** every assignment can copy a short progress summary to paste to a mentor.
-- **Accounts:** sign in with Google to save progress to your account and continue on any device. There are no passwords. Guests keep working with browser-only saving, and guest progress is merged into the account on first sign-in.
+- **Accounts:** sign in with Google, or with email and password, to save progress to your account and continue on any device. Both lead to the same account (matched by email). Guests keep working with browser-only saving, and guest progress is merged into the account on first sign-in.
 - **Global search:** `Ctrl/Cmd + K` or `/` searches lessons, concepts, exercises, assignments and resources.
 - **Easy journey:** the sidebar always shows the single best next step. Press `C` to continue from anywhere.
 - **Collapsible navigation** (`[` key) and keyboard shortcuts (`?` for the list).
@@ -52,7 +52,7 @@ See `.env.example`.
 3. Put the Client ID and secret in `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (Render Environment tab, or `.env` locally), and set `APP_URL` to the same address as the redirect URI without the path.
 4. Open the app, go to Sign in, and choose **Continue with Google**.
 
-**People who already had a password account:** the first time they sign in with Google using the same email, that account is claimed and all their progress is kept. After that the account is tied to that Google identity.
+**People who already had a password account:** nothing changes for them. They keep signing in with their password, and can also use Google with the same email, which opens the same account with all their progress. Once an account has been used with Google, a different Google account with the same email is refused.
 
 ## Checks
 
@@ -104,10 +104,11 @@ The API runs as one serverless function (`api/index.ts`); `/api/*` is rewritten 
 
 ## Security notes
 
-- **Sign in is Google only** (OpenID Connect, authorization code flow with PKCE, state and nonce). The server checks the ID token signature, audience, issuer and nonce, requires a verified email, and enforces `ALLOWED_EMAIL_DOMAINS` itself, so the domain hint sent to Google is not what protects you. Each account is bound to one Google identity, so a different Google account with the same email is refused. There are no passwords to store, reset or leak, and the old password endpoints no longer exist.
-- Sessions are signed, HttpOnly, SameSite=Lax cookies (Secure in production); state changing requests are same-origin checked; sign in is rate limited per server instance.
-- Old password hashes in the database are left in place and unused. They can be removed later with `UPDATE academy_users SET password_hash = NULL`.
-- Progress is stored in Neon as readable data. If you need it encrypted at rest, see the `feat/sso-rbac` branch (encryption and roles), which is not part of this change.
+- **Two ways in, one account.** Google (OpenID Connect, authorization code flow with PKCE, state and nonce) and email with password. Both reach the same account, matched by email, so existing password users keep working and can also use Google. For Google the server checks the ID token signature, audience, issuer and nonce, requires a verified email, and enforces `ALLOWED_EMAIL_DOMAINS` itself, so the domain hint sent to Google is not what protects you. After an account has been used with Google it is tied to that one Google identity.
+- Passwords are hashed with bcrypt. Sessions are signed, HttpOnly, SameSite=Lax cookies (Secure in production); state changing requests are same-origin checked; sign in and sign up are rate limited per server instance.
+- **Email addresses typed at password sign up are not verified.** Someone could register another person's `@concret.io` address with a password before that person ever signs in. The person can still use Google with that email and will reach the same account, but whoever set the password can also get in. The data at stake is learning progress only. To close this gap, turn password sign up off once everyone has used Google, or add email verification.
+- There is no password reset flow yet; people who forget a password can use Google.
+- Progress and emails are stored in Neon as readable data. Encryption at rest and roles are parked on the `feat/sso-rbac` branch and are not part of this.
 
 ## Structure
 
