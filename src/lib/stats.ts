@@ -2,7 +2,7 @@ import { allLessons, allAssignments, allExercises, modules } from '../content';
 import type { Assignment } from '../content/types';
 import type { Lesson, Module } from '../content/types';
 import type { Progress } from './store';
-import { TRACKS } from './tracks';
+import { GOALS, TRACKS } from './tracks';
 
 export const LESSON_PASS_PCT = 70;
 
@@ -110,10 +110,9 @@ interface NextBase { label: string; why: string; href: string; step: 'Learn' | '
 export interface NextAction extends NextBase { verb: string; target: string }
 
 /** The single best next thing to do, module by module: lesson, then its quiz, then its assignment, finally the exam. */
-function baseNext(p: Progress): NextBase {
-  const from = startNumber(p);
+function nextIn(p: Progress, from: number, to: number): NextBase | null {
   for (const m of modules) {
-    if (m.number < from) continue; // learner chose a later starting point on the Start page
+    if (m.number < from || m.number > to) continue; // before their starting point, or beyond their plan
     if (m.number >= 3 && !day1Done(p)) {
       return { step: 'Practice', label: 'Assignment: Prove Claude Code runs on your machine', why: 'Day 1 proof. Everything after Module 2 assumes you have used the real tool.', href: `#/assignments/${DAY1_ID}` };
     }
@@ -129,6 +128,17 @@ function baseNext(p: Progress): NextBase {
     const a = m.assignments.find((x) => !p.assignments[x.id]?.done);
     if (a) return { step: 'Practice', label: `Assignment: ${a.title}`, why: `Apply Module ${m.number} on real code.`, href: `#/assignments/${a.id}` };
   }
+  return null;
+}
+
+function baseNext(p: Progress): NextBase {
+  const from = startNumber(p);
+  const goal = p.profile.done ? GOALS.find((g) => g.id === p.profile.goal) : undefined;
+  // With a plan, finish it first; then carry on with whatever lies beyond it.
+  const planned = goal ? nextIn(p, from, goal.lastModule) : null;
+  if (planned) return planned;
+  const rest = nextIn(p, from, Infinity);
+  if (rest) return goal ? { ...rest, why: `Your plan is done. This is the next step beyond it. ${rest.why}` } : rest;
   if (!p.final?.passed) return { step: 'Prove', label: 'Take the final assessment', why: 'Show you can use Claude Code on real work.', href: '#/final' };
   return { step: 'Prove', label: 'Review your progress', why: 'You have completed the academy.', href: '#/progress' };
 }

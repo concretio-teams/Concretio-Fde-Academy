@@ -1,5 +1,5 @@
 import { allAssignments, allExercises, allLessons, modules } from '../content';
-import { DAY1_ID, day1Done, lessonDone, moduleStats, nextAction, overall, unmetRequirements } from '../lib/stats';
+import { DAY1_ID, lessonDone, moduleStats, nextAction, overall, unmetRequirements } from '../lib/stats';
 import { href } from '../lib/router';
 import { useProgress, type Progress as P } from '../lib/store';
 import { Badge, PageHead, Progress } from '../ui';
@@ -47,9 +47,8 @@ export function JourneyPage() {
       </div>
 
       <div className="jtree">
-        <div className="jstage">1. Set up</div>
+        <div className="jstage">1. Choose where to start</div>
         <Node state={p.track ? 'done' : 'todo'} to={href('start')} title="Pick your starting level" meta={p.track ? 'Chosen' : 'Takes ten seconds'} />
-        <Node state={stateOf(day1Done(p), here(`#/assignments/${DAY1_ID}`))} to={href('assignments', DAY1_ID)} title="Day 1 proof: run real Claude Code" meta="Required before Module 3. Paste real output from your own machine." />
 
         <div className="jstage">2. Learn and practise, module by module</div>
         {modules.map((m) => {
@@ -75,8 +74,8 @@ export function JourneyPage() {
                 {ex.map((x) => (
                   <Node key={x.exercise.id} state={stateOf(!!p.exercises[x.exercise.id]?.done, here(`#/playground/${x.exercise.id}`))} to={href('playground', x.exercise.id)} title={x.exercise.title} meta="Playground exercise" />
                 ))}
-                {m.assignments.filter((a) => a.id !== DAY1_ID).map((a) => (
-                  <Node key={a.id} state={stateOf(!!p.assignments[a.id]?.done, here(`#/assignments/${a.id}`))} to={href('assignments', a.id)} title={a.title} meta={`Assignment${a.minutes ? `, about ${a.minutes} min` : ''}`} />
+                {m.assignments.map((a) => (
+                  <Node key={a.id} state={stateOf(!!p.assignments[a.id]?.done, here(`#/assignments/${a.id}`))} to={href('assignments', a.id)} title={a.title} meta={a.id === DAY1_ID ? 'Day 1 proof: required before Module 3. Paste real output from your own machine.' : `Assignment${a.minutes ? `, about ${a.minutes} min` : ''}`} />
                 ))}
               </div>
             </details>

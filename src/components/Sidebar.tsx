@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { syncLabel } from '../pages/Login';
 import { useAuth } from '../lib/auth';
 import { href } from '../lib/router';
@@ -7,22 +7,26 @@ import { nextAction, overall } from '../lib/stats';
 import { actions, streak, useProgress } from '../lib/store';
 import { Icon, type IconName } from '../ui/icons';
 import { modKey, setSearchOpen } from './SearchPalette';
+import { TreeButton } from './Tree';
 
 const BASE = import.meta.env.BASE_URL;
 export const LOGO_FULL = `${BASE}brand/concretio-logo-white.webp`;
 export const LOGO_MARK = `${BASE}brand/concretio-balloon.webp`;
 
 const ICON: Record<string, IconName> = {
-  start: 'flag', '': 'grid', journey: 'route', path: 'list', resources: 'book', glossary: 'list',
+  start: 'flag', '': 'grid', journey: 'route', tiers: 'award', setup: 'pencil', path: 'list', resources: 'book', glossary: 'list',
   playground: 'play', knowledge: 'help', assignments: 'pencil', final: 'award', progress: 'chart',
 };
 
 // Same pages as search, grouped the way a learner thinks: learn it, practice it, prove it.
 const SECTIONS: [string, string[]][] = [
-  ['Learn', ['start', '', 'journey', 'path', 'resources', 'glossary']],
+  ['Learn', ['start', '', 'journey', 'tiers', 'path', 'resources', 'glossary', 'setup']],
   ['Practice', ['playground', 'knowledge', 'assignments']],
   ['Prove', ['final', 'progress']],
 ];
+// What a first-time visitor sees. Everything else is one click away under "More pages".
+const CORE = new Set(['start', '', 'journey', 'resources', 'glossary', 'playground']);
+const MORE_KEY = 'cca-nav-more';
 const labelOf = (k: string) => PAGES.find((p) => p[0] === k)?.[1] ?? k;
 
 interface Props {
@@ -40,6 +44,15 @@ function SidebarView({ active, open, collapsed, onToggleCollapsed, onHelp }: Pro
   const st = streak(p.days);
   const next = nextAction(p);
   const dark = p.theme === 'dark';
+  const [more, setMore] = useState(() => { try { return localStorage.getItem(MORE_KEY) === '1'; } catch { return false; } });
+  const toggleMore = () => setMore((m) => { const n = !m; try { localStorage.setItem(MORE_KEY, n ? '1' : '0'); } catch { /* ignore */ } return n; });
+  const career = p.profile.goal === 'career';
+  const visible = (k: string) => {
+    if (k === 'start') return !started || active === 'start';
+    if (k === 'setup') return auth.status === 'user' && (more || active === 'setup');
+    if (k === 'tiers') return career || more || active === 'tiers';
+    return CORE.has(k) || more || active === k;
+  };
   // "Start here" is for the first visit only. Once a level is picked or a lesson opened it only adds noise.
   const started = !!p.track || Object.keys(p.lessonsViewed).length > 0 || o.done > 0;
   return (
@@ -64,17 +77,22 @@ function SidebarView({ active, open, collapsed, onToggleCollapsed, onHelp }: Pro
         <Icon name="arrow" />
       </a>
 
+      <TreeButton />
+
       <nav className="nav" aria-label="Pages">
-        {SECTIONS.map(([title, keys]) => (
+        {SECTIONS.map(([title, keys]) => ({ title, keys: keys.filter(visible) })).filter((s) => s.keys.length > 0).map(({ title, keys }) => (
           <div key={title} className="navgroup">
             <div className="navhead lbl">{title}</div>
-            {keys.filter((k) => k !== 'start' || !started || active === 'start').map((k) => (
+            {keys.map((k) => (
               <a key={k} href={k ? href(k) : '#/'} className={active === k ? 'active' : ''} title={labelOf(k)} aria-current={active === k ? 'page' : undefined}>
                 <Icon name={ICON[k] ?? 'list'} /><span className="lbl">{labelOf(k)}</span>
               </a>
             ))}
           </div>
         ))}
+        <button type="button" className="morebtn" onClick={toggleMore} aria-expanded={more} title={more ? 'Show fewer pages' : 'Show every page'}>
+          <Icon name="list" /><span className="lbl">{more ? 'Show fewer pages' : 'More pages'}</span>
+        </button>
         {auth.user?.admin && (
           <div className="navgroup">
             <div className="navhead lbl">Admin</div>
