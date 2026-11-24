@@ -1,8 +1,8 @@
-import bcrypt from 'bcryptjs';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { randomUUID } from 'node:crypto';
 import { mergeProgress, sanitize } from '../shared/progress.js';
+import { googleConfigured, newPkce, randomToken, realGoogle, type GoogleClient } from './google.js';
 import { getStore, type UserRecord } from './store.js';
 
 const COOKIE = 'cca_session';
@@ -23,8 +23,9 @@ const adminEmails = () => (process.env.ADMIN_EMAILS || '').split(',').map((d) =>
 const isAdmin = (u: UserRecord) => adminEmails().includes(u.email);
 const publicUser = (u: UserRecord) => ({ id: u.id, email: u.email, name: u.name, admin: isAdmin(u) });
 
-// Constant-time-ish login: compare against a dummy hash when the user does not exist.
-const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', 10);
+const OAUTH_COOKIE = 'cca_oauth';
+const baseUrl = (req: Request) =>
+  (process.env.APP_URL || `${req.get('x-forwarded-proto') || req.protocol}://${req.get('x-forwarded-host') || req.get('host')}`).replace(/\/$/, '');
 
 /* ---- tiny in-memory rate limiter (per instance; fine for a small internal app) ---- */
 const hits = new Map<string, { n: number; reset: number }>();
@@ -84,7 +85,8 @@ const wrap = (fn: (req: AuthedRequest, res: Response) => Promise<unknown>) => (r
   fn(req, res).catch(next);
 };
 
-export function createApp() {
+export function createApp(opts: { google?: GoogleClient } = {}) {
+  const google = opts.google ?? realGoogle;
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
@@ -97,33 +99,49 @@ export function createApp() {
     res.json({ ok: true, storage: store.kind, domains: allowedDomains() });
   }));
 
-  app.post('/api/auth/signup', wrap(async (req, res) => {
-    if (limited(`signup:${req.ip}`, 10, 15 * 60_000)) return res.status(429).json({ error: 'Too many attempts. Try again later.' });
-    const email = String(req.body?.email ?? '').trim().toLowerCase();
-    const password = String(req.body?.password ?? '');
-    const name = String(req.body?.name ?? '').trim().slice(0, 80) || email.split('@')[0];
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200) return res.status(400).json({ error: 'Enter a valid email address' });
-    const domains = allowedDomains();
-    if (domains.length && !domains.includes(email.split('@')[1])) return res.status(403).json({ error: `Sign up is limited to: ${domains.map((d) => '@' + d).join(', ')}` });
-    if (password.length < 8 || password.length > 128) return res.status(400).json({ error: 'Password must be 8 to 128 characters' });
-    const store = await getStore();
-    if (await store.findByEmail(email)) return res.status(409).json({ error: 'An account with this email already exists. Sign in instead.' });
-    const user: UserRecord = { id: randomUUID(), email, name, passwordHash: await bcrypt.hash(password, 10), createdAt: Date.now() };
-    try { await store.createUser(user); } catch { return res.status(409).json({ error: 'An account with this email already exists. Sign in instead.' }); }
-    setSession(res, user.id);
-    res.status(201).json({ user: publicUser(user) });
-  }));
+  // Google is the only way to sign in. There are no passwords to store, reset or leak.
+  app.get('/api/auth/config', (_req, res) => {
+    res.json({ google: googleConfigured() || !!opts.google, domains: allowedDomains() });
+  });
 
-  app.post('/api/auth/login', wrap(async (req, res) => {
-    const email = String(req.body?.email ?? '').trim().toLowerCase();
-    const password = String(req.body?.password ?? '');
-    if (limited(`login:${req.ip}:${email}`, 8, 15 * 60_000)) return res.status(429).json({ error: 'Too many attempts. Try again later.' });
+  // Authorization code flow with PKCE, state and nonce.
+  app.get('/api/auth/google', (req, res) => {
+    if (!googleConfigured() && !opts.google) return res.status(503).json({ error: 'Google sign in is not configured' });
+    if (limited(`g:${req.ip}`, 30, 15 * 60_000)) return res.status(429).json({ error: 'Too many attempts. Try again later.' });
+    const state = randomToken(), nonce = randomToken(), { verifier, challenge } = newPkce();
+    const token = jwt.sign({ state, nonce, verifier }, secret(), { expiresIn: 600 });
+    res.cookie(OAUTH_COOKIE, token, { httpOnly: true, sameSite: 'lax', secure: isProd(), maxAge: 600_000, path: '/api/auth/google' });
+    res.redirect(google.authUrl({ redirectUri: `${baseUrl(req)}/api/auth/google/callback`, state, nonce, challenge, domainHint: allowedDomains()[0] }));
+  });
+
+  app.get('/api/auth/google/callback', wrap(async (req, res) => {
+    const root = baseUrl(req);
+    const fail = (why: string) => res.redirect(`${root}/#/login?error=${encodeURIComponent(why)}`);
+    res.clearCookie(OAUTH_COOKIE, { path: '/api/auth/google' });
+    if (req.query.error) return fail('Google sign in was cancelled');
+    let saved: { state: string; nonce: string; verifier: string };
+    try { saved = jwt.verify(readCookie(req, OAUTH_COOKIE) ?? '', secret()) as typeof saved; } catch { return fail('Sign in expired, please try again'); }
+    if (!saved.state || saved.state !== String(req.query.state ?? '')) return fail('Sign in could not be verified, please try again');
+    let id;
+    try {
+      id = await google.exchange({ code: String(req.query.code ?? ''), verifier: saved.verifier, redirectUri: `${root}/api/auth/google/callback`, nonce: saved.nonce });
+    } catch { return fail('Google sign in failed'); }
+    if (!id.emailVerified) return fail('Your Google email is not verified');
+    const domains = allowedDomains();
+    if (domains.length && !domains.includes(id.email.split('@')[1])) return fail(`Sign in is limited to: ${domains.map((d) => '@' + d).join(', ')}`);
     const store = await getStore();
-    const user = await store.findByEmail(email);
-    const ok = await bcrypt.compare(password, user?.passwordHash ?? DUMMY_HASH);
-    if (!user || !ok) return res.status(401).json({ error: 'Wrong email or password' });
+    let user = await store.findByEmail(id.email);
+    if (!user) {
+      user = { id: randomUUID(), email: id.email, name: id.name.slice(0, 80), passwordHash: null, googleSub: id.sub, createdAt: Date.now() };
+      await store.createUser(user);
+    } else {
+      // An account made earlier with a password is claimed by its owner's Google sign in, and keeps its progress.
+      // After that the account is bound to that one Google identity.
+      if (user.googleSub && user.googleSub !== id.sub) return fail('This email is linked to a different Google account');
+      if (!user.googleSub) await store.setGoogleSub(user.id, id.sub);
+    }
     setSession(res, user.id);
-    res.json({ user: publicUser(user) });
+    res.redirect(`${root}/#/`);
   }));
 
   app.post('/api/auth/logout', (_req, res) => {

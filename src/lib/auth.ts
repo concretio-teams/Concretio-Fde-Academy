@@ -89,18 +89,6 @@ export async function initAuth(): Promise<void> {
   }
 }
 
-export async function signIn(mode: 'login' | 'signup', email: string, password: string, name?: string): Promise<string | null> {
-  try {
-    const r = await api<{ user: AuthUser }>(`/api/auth/${mode}`, { method: 'POST', body: JSON.stringify({ email, password, name }) });
-    if (!r.ok) return r.body.error || 'Could not sign in';
-    set({ status: 'user', user: r.body.user });
-    await pullAndMerge();
-    return null;
-  } catch {
-    return 'The server is not reachable. Check your connection and try again.';
-  }
-}
-
 export async function signOut(): Promise<void> {
   clearTimeout(timer);
   if (state.status === 'user') await push(); // flush pending changes first
