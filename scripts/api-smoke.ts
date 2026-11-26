@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { emptyProgress, isForeignLocal, type ProgressData } from '../shared/progress';
 
 const dir = mkdtempSync(path.join(tmpdir(), 'academy-smoke-'));
 const DATA_FILE = path.join(dir, 'db.json');
@@ -154,6 +155,15 @@ try {
   const cohort = await boss.call('GET', '/api/admin/cohort');
   check('admin can read the cohort', cohort.s === 200 && cohort.j?.learners?.length === 4, String(cohort.j?.learners?.length));
   check('cohort never leaks password hashes or google ids', !JSON.stringify(cohort.j).includes('passwordHash') && !JSON.stringify(cohort.j).includes('$2a$') && !JSON.stringify(cohort.j).includes('g-lea'));
+
+  // ---- stale progress in a browser must not leak into another account ----
+  const done = (): ProgressData => ({ ...emptyProgress('light'), profile: { ...emptyProgress('light').profile, done: true } });
+  const fresh = emptyProgress('light');
+  check('stale browser: finished setup, no owner tag, new account is foreign', isForeignLocal(null, 'u2', done(), fresh));
+  check('stale browser: owner is another account is foreign', isForeignLocal('u1', 'u2', fresh, fresh));
+  check('same account on the same browser is kept', !isForeignLocal('u1', 'u1', done(), done()));
+  check('guest progress, no setup, is carried into the first account', !isForeignLocal(null, 'u2', fresh, fresh));
+  check('older browser, existing account with its own setup, is merged not wiped', !isForeignLocal(null, 'u2', done(), done()));
 
   // ---- other protections ----
   check('cross origin write is blocked', (await fetch(base + '/api/progress', { method: 'PUT', headers: { 'Content-Type': 'application/json', Origin: 'https://evil.example', Cookie: lea.cookie }, body: '{}' })).status === 403);

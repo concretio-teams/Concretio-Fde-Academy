@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { emptyProgress, mergeProgress, sameProgress, sanitize } from '../../shared/progress';
+import { emptyProgress, isForeignLocal, mergeProgress, sameProgress, sanitize } from '../../shared/progress';
 import { actions, getProgress, onProgressChange } from './store';
 
 export interface AuthUser { id: string; email: string; name: string; admin?: boolean }
@@ -27,6 +27,11 @@ async function api<T>(path: string, init?: RequestInit): Promise<{ ok: boolean; 
   if (!ct.includes('application/json')) throw new Error('API unavailable');
   return { ok: res.ok, status: res.status, body: await res.json() };
 }
+
+/* ---------------- who the saved progress belongs to ---------------- */
+const OWNER_KEY = 'cca-owner-v1';
+const readOwner = (): string | null => { try { return localStorage.getItem(OWNER_KEY); } catch { return null; } };
+const writeOwner = (id: string | null) => { try { if (id) localStorage.setItem(OWNER_KEY, id); else localStorage.removeItem(OWNER_KEY); } catch { /* ignore */ } };
 
 /* ---------------- cloud sync ---------------- */
 let timer: ReturnType<typeof setTimeout> | undefined;
@@ -62,9 +67,13 @@ async function pullAndMerge() {
     const r = await api<{ data: unknown }>('/api/progress');
     if (!r.ok) throw new Error(r.body.error || 'Load failed');
     const remote = r.body.data ? sanitize(r.body.data) : emptyProgress();
+    const uid = state.user?.id ?? '';
+    // Progress in this browser may belong to an account that was signed out of, deleted or replaced: never merge it in.
+    const local = isForeignLocal(readOwner(), uid, getProgress(), remote) ? emptyProgress(getProgress().theme) : getProgress();
     applying = true;
-    actions.replaceProgress(mergeProgress(getProgress(), remote), true);
+    actions.replaceProgress(mergeProgress(local, remote), true);
     applying = false;
+    if (uid) writeOwner(uid);
     await push();
   } catch {
     set({ sync: 'error' });
@@ -107,6 +116,7 @@ export async function signOut(): Promise<void> {
   try { await api('/api/auth/logout', { method: 'POST' }); } catch { /* ignore */ }
   // Clear this device so the next person starts fresh; progress stays in the account.
   actions.replaceProgress(emptyProgress(getProgress().theme), true);
+  writeOwner(null);
   set({ status: 'guest', user: null, sync: 'idle', lastSaved: null });
 }
 
