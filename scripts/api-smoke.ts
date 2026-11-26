@@ -135,6 +135,17 @@ try {
   check('a stale copy does not undo a newer edit', JSON.stringify(stale?.checked) === '[0]' && stale?.notes === '', JSON.stringify(stale));
   await lea.call('PUT', '/api/progress', { data: { ...data, quiz: { 'q-l1': { best: 2, last: 2, total: 3, attempts: 1, at: 5, answers: [1, 0, 2] } } } });
   check('quiz answers are saved for review', JSON.stringify((await lea.call('GET', '/api/progress')).j?.data?.quiz?.['q-l1']?.answers) === '[1,0,2]');
+  // Salesforce program: ticks merge by newest change, bad values are dropped, and the level survives.
+  await lea.call('PUT', '/api/progress', { data: { ...data, profile: { goal: 'basics', time: null, done: true, at: 10, sf: 'associate' }, sf: { 'sf-a1': { done: true, u: 1000 }, 'sf-a2': { done: true, u: 1000 }, bad: { done: 'yes' } } } });
+  await lea.call('PUT', '/api/progress', { data: { ...data, sf: { 'sf-a1': { done: false, u: 2000 } } } });
+  const sfm = (await lea.call('GET', '/api/progress')).j?.data;
+  check('salesforce level is saved', sfm?.profile?.sf === 'associate');
+  check('salesforce untick wins when newer, other ticks stay', sfm?.sf?.['sf-a1']?.done === false && sfm?.sf?.['sf-a2']?.done === true);
+  check('salesforce junk entries are dropped', sfm?.sf?.bad === undefined);
+  await lea.call('PUT', '/api/progress', { data: { ...data, sfFinal: { score: 11, total: 12, passed: true, at: 5, attempts: 1 } } });
+  await lea.call('PUT', '/api/progress', { data: { ...data, sfFinal: { score: 6, total: 12, passed: false, at: 9, attempts: 3 } } });
+  const sff = (await lea.call('GET', '/api/progress')).j?.data?.sfFinal;
+  check('salesforce exam keeps the pass and the best score', sff?.passed === true && sff?.score === 11 && sff?.attempts === 3, JSON.stringify(sff));
 
   // ---- admin cohort (still by ADMIN_EMAILS) ----
   check('normal user cannot read the cohort', (await lea.call('GET', '/api/admin/cohort')).s === 403);

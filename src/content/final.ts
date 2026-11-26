@@ -329,6 +329,7 @@ export const final: FinalAssessment = {
   practical: [
     {
       id: 'p1',
+      module: 'm4',
       title: 'Set up a repo with CLAUDE.md and plan a feature',
       brief:
         'Create a small repository (any language) for a simple app such as a task tracker. Set it up for Claude Code, then use plan mode to plan a new feature (for example "mark tasks overdue and send a daily digest"). Do not implement the feature; the focus is setup and planning quality.',
@@ -342,6 +343,7 @@ export const final: FinalAssessment = {
     },
     {
       id: 'p2',
+      module: 'm7',
       title: 'Review a flawed AI generated endpoint',
       brief:
         'Take (or have Claude write) a small endpoint that creates and fetches orders, then review it as if you were the reviewer. Look for security, correctness and production readiness issues. Write a review with findings ranked by severity, then fix the top issues and add tests that prove the fixes.',
@@ -355,6 +357,7 @@ export const final: FinalAssessment = {
     },
     {
       id: 'p3',
+      module: 'm8',
       title: 'Design a solution for a vague client brief',
       brief:
         'Brief: "Our field technicians waste time on paperwork. Can you use AI to fix it? We would like to see something in three weeks." Produce a solution design pack and a first slice plan. Use Claude as a thinking partner but do not invent client facts.',

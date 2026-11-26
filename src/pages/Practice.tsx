@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { allAssignments, allExercises, assignmentById, finalAssessment, lessonById, moduleById, modules, resources } from '../content';
+import { allAssignments, allExercises, assignmentById, finalAssessment, finalSalesforce, lessonById, moduleById, modules, resources as allResources } from '../content';
 import { ResourceItem } from '../components/GoDeeper';
 import { ExerciseView } from '../components/Exercises';
 import { Quiz, shuffle } from '../components/Quiz';
+import { finalLastModule } from '../lib/plan';
 import { href } from '../lib/router';
+import { requiredSfItems } from '../lib/sfPath';
 import { actions, useProgress } from '../lib/store';
 import { Badge, Button, Card, CopyButton, LinkButton, PageHead, Progress, Rich } from '../ui';
 
@@ -159,8 +161,10 @@ const LEVELS_F: [string, string][] = [['all', 'Any level'], ['Beginner', 'Beginn
 const NEW_HERE = ['res-course-claude-101', 'res-quickstart', 'res-video-mastering'];
 
 export function ResourcesPage() {
+  const prog = useProgress();
   const [fmt, setFmt] = useState('all');
   const [level, setLevel] = useState('all');
+  const resources = allResources.filter((r) => r.audience !== 'salesforce' || prog.profile.sf || prog.profile.all);
   const total = resources.reduce((a, r) => a + r.minutes, 0);
   const primary = (r: (typeof resources)[number]) => lessonById(r.lessons?.[0] ?? '')?.module ?? moduleById(r.modules[0]);
   const shown = resources.filter((r) => {
@@ -213,23 +217,41 @@ export function ResourcesPage() {
 export function FinalPage() {
   const p = useProgress();
   const fa = finalAssessment;
+  const sfx = p.profile.sf ? finalSalesforce : null; // learners on the Salesforce FDE program also sit the Salesforce exam
+  const last = finalLastModule(p); // the exam covers the learner's own path, not modules they were never recommended
   const [started, setStarted] = useState(false);
-  const qs = useMemo(() => (fa ? shuffle(fa.questions).slice(0, fa.questions.length) : []), [fa, started]);
-  if (!fa) return <PageHead title="Final assessment" kicker="Final">The final assessment is being prepared.</PageHead>;
+  const [sfStarted, setSfStarted] = useState(false);
+  const numOf = (id: string) => modules.find((m) => m.id === id)?.number ?? 0;
+  const scoped = useMemo(() => fa ? {
+    questions: fa.questions.filter((q) => numOf(q.module) <= last),
+    practical: fa.practical.filter((t) => !t.module || numOf(t.module) <= last),
+  } : null, [fa, last]);
+  const qs = useMemo(() => (scoped ? shuffle(scoped.questions) : []), [scoped, started]);
+  const sfQs = useMemo(() => (sfx ? shuffle(sfx.questions) : []), [sfx, sfStarted]);
+  if (!fa || !scoped) return <PageHead title="Final assessment" kicker="Final">The final assessment is being prepared.</PageHead>;
   const fin = p.final;
-  const practicalDone = fa.practical.every((t) => (p.finalPractical[t.id]?.length ?? 0) === t.criteria.length);
+  const sfFin = p.sfFinal;
+  const tasks = [...scoped.practical, ...(sfx?.practical ?? [])];
+  const practicalDone = tasks.every((t) => (p.finalPractical[t.id]?.length ?? 0) === t.criteria.length);
   const theoryPassed = !!fin?.passed;
-  const certified = theoryPassed && practicalDone;
+  const sfPassed = !!sfFin?.passed;
+  const certified = theoryPassed && practicalDone && (!sfx || sfPassed);
+  const level = p.profile.sf;
+  const proof = level ? requiredSfItems().filter((i) => i.kind === 'Superbadge' || i.kind === 'Exam') : [];
+  const all = p.profile.sf && p.profile.all;
   return (
     <>
       <PageHead kicker="Final assessment" title="Show you can do it">
-        Part 1 is a {fa.questions.length}-question scenario exam (pass mark {fa.passMark}%). Part 2 is three practical tasks you complete in a real repository and self-certify.
+        {sfx
+          ? `Part 1 is a ${scoped.questions.length}-question academy exam. Part 2 is a ${sfx.questions.length}-question Salesforce exam. Part 3 is ${tasks.length} practical tasks you complete in a real repository or sandbox and self-certify. Pass mark ${fa.passMark}%.`
+          : `Part 1 is a ${scoped.questions.length}-question scenario exam (pass mark ${fa.passMark}%). Part 2 is ${tasks.length} practical task${tasks.length === 1 ? '' : 's'} you complete in a real repository and self-certify.`}
       </PageHead>
+      {last !== Infinity && <p className="small muted">The academy exam covers Modules 1 to {last}, the modules in your plan. {all ? '' : 'The rest are not tested.'}</p>}
       {certified && (
         <div className="hero" style={{ marginBottom: 18 }}>
           <div className="kicker">Certified</div>
           <h2>Concretio FDE Academy complete</h2>
-          <p>Theory {fin ? Math.round((fin.score / fin.total) * 100) : 0}% and all practical tasks done. You are ready to use Claude Code on client work.</p>
+          <p>Theory {fin ? Math.round((fin.score / fin.total) * 100) : 0}%{sfx && sfFin ? `, Salesforce exam ${Math.round((sfFin.score / sfFin.total) * 100)}%` : ''} and all practical tasks done. You are ready to use Claude Code on client work.</p>
         </div>
       )}
       <h2>Part 1: Theory exam {theoryPassed && <Badge tone="ok">Passed</Badge>}</h2>
@@ -239,9 +261,21 @@ export function FinalPage() {
       ) : (
         <Quiz key={String(started)} questions={qs} mode="exam" passPct={fa.passMark} onFinish={(s, t) => actions.saveFinal(s, t, fa.passMark)} />
       )}
-      <h2 style={{ marginTop: 32 }}>Part 2: Practical tasks {practicalDone && <Badge tone="ok">Done</Badge>}</h2>
+      {sfx && (
+        <>
+          <h2 style={{ marginTop: 32 }}>Part 2: Salesforce exam {sfPassed && <Badge tone="ok">Passed</Badge>}</h2>
+          <p className="muted small">Judgment when Claude Code writes or changes Salesforce work: bulk safety, access, sandboxes, data in prompts, deployment and agents. It assumes you know Apex, Flow and LWC basics.</p>
+          {sfFin && <p className="muted small">Last attempt: {sfFin.score}/{sfFin.total} ({Math.round((sfFin.score / sfFin.total) * 100)}%), {sfFin.attempts} attempt(s).</p>}
+          {!sfStarted ? (
+            <Button variant="primary" onClick={() => setSfStarted(true)}>{sfFin ? 'Retake Salesforce exam' : 'Start Salesforce exam'}</Button>
+          ) : (
+            <Quiz key={'sf' + String(sfStarted)} questions={sfQs} mode="exam" passPct={sfx.passMark} onFinish={(s, t) => actions.saveSfFinal(s, t, sfx.passMark)} />
+          )}
+        </>
+      )}
+      <h2 style={{ marginTop: 32 }}>Part {sfx ? 3 : 2}: Practical tasks {practicalDone && <Badge tone="ok">Done</Badge>}</h2>
       <div className="stack">
-        {fa.practical.map((t) => {
+        {tasks.map((t) => {
           const ticks = p.finalPractical[t.id] ?? [];
           return (
             <div key={t.id} className="card">
@@ -257,6 +291,15 @@ export function FinalPage() {
           );
         })}
       </div>
+      {level && proof.length > 0 && (
+        <>
+          <h2 style={{ marginTop: 32 }}>Proof from Salesforce and Anthropic</h2>
+          <p className="muted small">These are graded by the providers, not here. Tick them on the <a href={href('salesforce')}>Salesforce page</a> when you earn them.</p>
+          <div className="stack" style={{ gap: 6 }}>
+            {proof.map((i) => <div key={i.id} className="small">{p.sf[i.id]?.done ? '✓ ' : '○ '}{i.title}</div>)}
+          </div>
+        </>
+      )}
       <div className="row" style={{ marginTop: 18 }}><LinkButton href={href('progress')}>View my progress</LinkButton></div>
     </>
   );

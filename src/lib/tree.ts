@@ -7,6 +7,11 @@ export const PART_NAMES = ['Roots', 'Trunk', 'Lower branches', 'Upper branches',
 
 /** How far each part has grown, 0 to 1, in module order. */
 export function partProgress(p: Progress): number[] {
+  // Salesforce learners: the nine parts are nine equal slices of the whole path, so the tree follows their journey.
+  if (p.profile.sf) {
+    const e = overall(p).pct / 100;
+    return PART_NAMES.map((_, i) => Math.min(1, Math.max(0, e * 9 - i)));
+  }
   return PART_NAMES.map((_, i) => {
     const m = modules.find((x) => x.number === i + 1);
     return m ? moduleStats(p, m).pct / 100 : 0;

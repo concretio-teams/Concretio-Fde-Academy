@@ -5,6 +5,8 @@ import { planOf, type Plan } from '../lib/plan';
 import { resetAll } from '../lib/auth';
 import { streak, useProgress, type Progress as P } from '../lib/store';
 import type { Module } from '../content/types';
+import { ScopeToggle } from '../components/Scope';
+import { SalesforceCard } from './Salesforce';
 import { Badge, Button, Card, LinkButton, PageHead, Progress, Ring } from '../ui';
 import { LevelPicker } from './Start';
 
@@ -45,6 +47,7 @@ function ModuleCards({ mods, p, plain }: { mods: Module[]; p: P; plain?: boolean
 
 /** The recommended modules first, in order. Everything else is one click away, never hidden for good. */
 function PlanSection({ plan, p, plain }: { plan: Plan; p: P; plain?: boolean }) {
+  const hideRest = !!plan.sf && !p.profile.all; // Salesforce learners get a focused path; the rest is hidden, not locked
   return (
     <>
       <div className="row spread" style={{ alignItems: 'baseline' }}>
@@ -52,10 +55,11 @@ function PlanSection({ plan, p, plain }: { plan: Plan; p: P; plain?: boolean }) 
         <a className="small" href={href('setup')}>Change my answers</a>
       </div>
       <p className="muted" style={{ margin: '4px 0 12px' }}>
-        {plan.modules.length} module{plan.modules.length === 1 ? '' : 's'}, {hours(plan.minutesLeft)} left{plan.weeks ? `, about ${plan.weeks} week${plan.weeks === 1 ? '' : 's'} at ${plan.hoursPerWeek} hours a week` : ''}.
+        {plan.modules.length} academy module{plan.modules.length === 1 ? '' : 's'}{plan.sf ? ' and the Salesforce courses' : ''}, {hours(plan.minutesLeft)} left{plan.weeks ? `, about ${plan.weeks} week${plan.weeks === 1 ? '' : 's'} at ${plan.hoursPerWeek} hours a week` : ''}.
       </p>
       <ModuleCards mods={plan.modules} p={p} plain={plain} />
-      {plan.rest.length > 0 && (
+      <ScopeToggle />
+      {plan.rest.length > 0 && !hideRest && (
         <details className="moremods">
           <summary>Show the other {plan.rest.length} module{plan.rest.length === 1 ? '' : 's'}</summary>
           <p className="small muted" style={{ margin: '8px 0' }}>Not part of your plan, but fully open. Start any of them whenever you like.</p>
@@ -102,6 +106,7 @@ export function Dashboard() {
         <p className="muted">{plan.modules.length} module{plan.modules.length === 1 ? '' : 's'}, {hours(plan.minutesLeft)} of lessons and assignments{plan.weeks ? `, about ${plan.weeks} week${plan.weeks === 1 ? '' : 's'} at ${plan.hoursPerWeek} hours a week` : ''}. Nothing is locked, so you can open any module whenever you like.</p>
         <div className="row"><LinkButton variant="primary" href={next.href}>{next.label}</LinkButton></div>
       </div>
+      {p.profile.sf && <div style={{ marginBottom: 20 }}><SalesforceCard /></div>}
       <PlanSection plan={plan} p={p} plain />
       {rules}
     </>
@@ -148,6 +153,7 @@ export function Dashboard() {
         <Card><div className="stat"><span className="muted small">Learning streak</span><b>{st.current} day{st.current === 1 ? '' : 's'}</b><span className="small muted">best {st.best}</span></div></Card>
         <Card><div className="stat"><span className="muted small">Exercises solved</span><b>{solved}/{allExercises.length}</b></div></Card>
       </div>
+      {p.profile.sf && <div style={{ marginBottom: 20 }}><SalesforceCard /></div>}
       <h2>Your journey</h2>
       <div className="journey">
         {([

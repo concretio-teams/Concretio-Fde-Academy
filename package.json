@@ -17,6 +17,7 @@
     "db:migrate": "node scripts/migrate-db.mjs",
     "check:links": "node scripts/check-links.mjs",
     "test:api": "tsx scripts/api-smoke.ts",
+    "test:sf-path": "tsx scripts/check-sf-path.ts",
     "dev:staging": "concurrently -n web,api -c cyan,magenta \"vite\" \"tsx watch --env-file=.env.staging server/index.ts\""
   },
   "dependencies": {

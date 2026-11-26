@@ -597,3 +597,5 @@ html, body { max-width: 100%; overflow-x: clip; }
 
 .tr-exp { fill: none; stroke-linecap: round; opacity: .8; }
 .tlhs { color: var(--accent-ink) !important; font-weight: 600; }
+
+.onbbackbtn { margin-bottom: 14px; }
