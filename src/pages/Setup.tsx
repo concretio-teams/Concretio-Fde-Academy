@@ -42,6 +42,7 @@ export function SetupPage() {
 
   const preview = buildPlan(p, sf ? null : track, goal, time, sf);
   const ready = !!time && (!!sf || (!!track && !!goal));
+  const missing = [...(!sf && !track ? ['2'] : []), ...(!sf && !goal ? ['3'] : []), ...(!time ? [sf ? '2' : '4'] : [])];
   const save = () => {
     if (sf) { if (!p.track) actions.setTrack('new'); } else if (track) actions.setTrack(track);
     actions.setProfile(sf ? null : goal, time, sf);
@@ -92,7 +93,7 @@ export function SetupPage() {
             </p>
           </>
         ) : (
-          <span className="muted">Answer every question to see your plan.</span>
+          <span className="muted">{missing.length ? `Answer question ${missing.join(' and ')} to see your plan and save.` : 'Answer every question to see your plan.'}</span>
         )}
       </Card>
 
