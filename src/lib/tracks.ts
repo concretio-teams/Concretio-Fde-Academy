@@ -1,4 +1,4 @@
-import type { Goal, TimeBudget, Track } from './store';
+import type { Goal, SfLevel, TimeBudget, Track } from './store';
 
 // Three starting points. Keep this short: the goal is to answer "where do I begin?" in ten seconds.
 export interface TrackInfo {
@@ -52,4 +52,10 @@ export const TIMES: { id: TimeBudget; title: string; hoursPerWeek: number }[] = 
   { id: 'light', title: '1 to 2 hours', hoursPerWeek: 1.5 },
   { id: 'steady', title: '3 to 5 hours', hoursPerWeek: 4 },
   { id: 'focused', title: '5 hours or more', hoursPerWeek: 6 },
+];
+
+/** First question at sign-in. "none" means the general academy path. */
+export const SF_CHOICES: { id: SfLevel | 'none'; title: string; sub: string }[] = [
+  { id: 'none', title: 'No, I am not on the program', sub: 'You get the general academy path. The Salesforce content stays hidden unless you ask for it.' },
+  { id: 'associate', title: 'Yes, I am on the program', sub: 'One fixed path for everyone: Associate, then FDE, then Senior FDE. Salesforce courses first, then Claude Code and vibe coding.' },
 ];

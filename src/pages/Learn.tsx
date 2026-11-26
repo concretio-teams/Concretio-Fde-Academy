@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { nextAction } from '../lib/stats';
+import { ScopeToggle } from '../components/Scope';
 import { planOf } from '../lib/plan';
 import { allLessons, lessonById, moduleById, modules, nextLessonAfter } from '../content';
 import { BlockView } from '../components/Blocks';
@@ -21,8 +22,9 @@ export function PathPage() {
         Work top to bottom. Each module builds on the ones before it; the path shows what to finish first.
         Total time: {hours(totalMinutes().lessons + totalMinutes().assignments)}. Not sure where to begin? Try the <a href={href('start')}>Start here</a> page.
       </PageHead>
+      <ScopeToggle />
       <div className="stack">
-        {modules.map((m) => {
+        {modules.filter((m) => !(plan?.sf && !p.profile.all) || plan.modules.includes(m)).map((m) => {
           const s = moduleStats(p, m);
           const unmet = unmetRequirements(p, m);
           const mins = m.lessons.reduce((a, l) => a + l.minutes, 0) + m.assignments.reduce((a, x) => a + (x.minutes ?? 0), 0);

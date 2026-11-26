@@ -14,13 +14,13 @@ export const LOGO_FULL = `${BASE}brand/concretio-logo-white.webp`;
 export const LOGO_MARK = `${BASE}brand/concretio-balloon.webp`;
 
 const ICON: Record<string, IconName> = {
-  start: 'flag', '': 'grid', journey: 'route', tiers: 'award', setup: 'pencil', path: 'list', resources: 'book', glossary: 'list',
+  start: 'flag', '': 'grid', journey: 'route', salesforce: 'award', tiers: 'award', setup: 'pencil', path: 'list', resources: 'book', glossary: 'list',
   playground: 'play', knowledge: 'help', assignments: 'pencil', final: 'award', progress: 'chart',
 };
 
 // Same pages as search, grouped the way a learner thinks: learn it, practice it, prove it.
 const SECTIONS: [string, string[]][] = [
-  ['Learn', ['start', '', 'journey', 'tiers', 'path', 'resources', 'glossary', 'setup']],
+  ['Learn', ['start', '', 'journey', 'salesforce', 'tiers', 'path', 'resources', 'glossary', 'setup']],
   ['Practice', ['playground', 'knowledge', 'assignments']],
   ['Prove', ['final', 'progress']],
 ];
@@ -50,6 +50,7 @@ function SidebarView({ active, open, collapsed, onToggleCollapsed, onHelp }: Pro
   const visible = (k: string) => {
     if (k === 'start') return !started || active === 'start';
     if (k === 'setup') return auth.status === 'user' && (more || active === 'setup');
+    if (k === 'salesforce') return !!p.profile.sf || p.profile.all || active === 'salesforce';
     if (k === 'tiers') return career || more || active === 'tiers';
     return CORE.has(k) || more || active === k;
   };

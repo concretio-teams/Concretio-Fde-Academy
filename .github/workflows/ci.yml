@@ -18,6 +18,7 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
       - run: npm run test:api
+      - run: npm run test:sf-path
       - name: Starter projects still pass their own tests
         run: |
           (cd starters/shop-app && npm test)

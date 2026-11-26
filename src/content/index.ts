@@ -17,6 +17,7 @@ export const conceptList: Concept[] = Object.values(conceptMap).sort((a, b) => a
 
 export const resourcesForLesson = (lessonId: string): Resource[] => resources.filter((r) => r.lessons?.includes(lessonId));
 
+export { finalSalesforce } from './finalSalesforce';
 export const finalAssessment: FinalAssessment | null = Object.values(finFiles)[0]?.final ?? null;
 export const resources: Resource[] = Object.values(resFiles)[0]?.resources ?? [];
 

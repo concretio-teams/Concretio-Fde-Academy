@@ -160,10 +160,11 @@ export interface Resource {
   modules: string[]; // module ids it supplements
   lessons?: string[]; // lesson ids it supports, earliest first; shown as "Go deeper" on each lesson page
   verified: string; // ISO date the link was checked
+  audience?: 'salesforce'; // shown only to learners on the Salesforce FDE program, unless they ask to see everything
 }
 
 export interface FinalAssessment {
   passMark: number; // percent, e.g. 75
   questions: (Question & { module: string })[]; // 20 to 25 scenario questions across all modules
-  practical: { id: string; title: string; brief: Rich; criteria: string[] }[]; // 3 practical tasks, self-assessed
+  practical: { id: string; title: string; brief: Rich; criteria: string[]; module?: string /* academy module it belongs to, so it can be left out of a shorter path */ }[]; // 3 practical tasks, self-assessed
 }

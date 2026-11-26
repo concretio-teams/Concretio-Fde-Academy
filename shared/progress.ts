@@ -9,18 +9,24 @@ export interface FinalState {
 export type Track = 'new' | 'some' | 'pro';
 export type Goal = 'basics' | 'client' | 'career';
 export type TimeBudget = 'light' | 'steady' | 'focused';
+/** Level on the Concretio Salesforce FDE program. null means the learner is not on that program. */
+export type SfLevel = 'associate' | 'fde' | 'senior';
+/** Ticked item of the Salesforce program. u is the last change, so unticking survives a merge. */
+export interface SfItemState { done: boolean; u: number }
 /** Answers to the first sign-in questions. They only shape recommendations; nothing is ever locked. */
-export interface Profile { goal: Goal | null; time: TimeBudget | null; done: boolean; at: number }
+export interface Profile { goal: Goal | null; time: TimeBudget | null; done: boolean; at: number; sf: SfLevel | null; all: boolean /* show everything, including content hidden for this learner */ }
 export interface ProgressData {
   theme: 'light' | 'dark';
   track: Track | null; // starting level picked on the Start page
   profile: Profile;
+  sf: Record<string, SfItemState>; // Salesforce FDE program items, by id
   lessonsViewed: Record<string, number>;
   lessonsManual: Record<string, boolean>;
   quiz: Record<string, QuizResult>;
   exercises: Record<string, { done: boolean; attempts: number }>;
   assignments: Record<string, AssignmentState>;
   final: FinalState | null;
+  sfFinal: FinalState | null; // the Salesforce exam, for learners on the Salesforce FDE program
   finalPractical: Record<string, number[]>;
   finalPracticalAt: Record<string, number>; // last edit per task, so unticking survives a merge
   days: string[];
@@ -28,21 +34,33 @@ export interface ProgressData {
 }
 
 export const emptyProgress = (theme: 'light' | 'dark' = 'light'): ProgressData => ({
-  theme, track: null, profile: { goal: null, time: null, done: false, at: 0 }, lessonsViewed: {}, lessonsManual: {}, quiz: {}, exercises: {}, assignments: {},
-  final: null, finalPractical: {}, finalPracticalAt: {}, days: [], history: [],
+  theme, track: null, profile: { goal: null, time: null, done: false, at: 0, sf: null, all: false }, sf: {}, lessonsViewed: {}, lessonsManual: {}, quiz: {}, exercises: {}, assignments: {},
+  final: null, sfFinal: null, finalPractical: {}, finalPracticalAt: {}, days: [], history: [],
 });
 
 const isObj = (v: unknown): v is Record<string, any> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const union = (a: number[] = [], b: number[] = []) => [...new Set([...a, ...b])].sort((x, y) => x - y);
 
 function sanitizeProfile(v: unknown): Profile {
-  if (!isObj(v)) return { goal: null, time: null, done: false, at: 0 };
+  if (!isObj(v)) return { goal: null, time: null, done: false, at: 0, sf: null, all: false };
   return {
     goal: v.goal === 'basics' || v.goal === 'client' || v.goal === 'career' ? v.goal : null,
     time: v.time === 'light' || v.time === 'steady' || v.time === 'focused' ? v.time : null,
     done: v.done === true,
     at: typeof v.at === 'number' && Number.isFinite(v.at) ? v.at : 0,
+    sf: v.sf === 'associate' || v.sf === 'fde' || v.sf === 'senior' ? v.sf : null,
+    all: v.all === true,
   };
+}
+
+function sanitizeSf(v: unknown): Record<string, SfItemState> {
+  const out: Record<string, SfItemState> = {};
+  if (!isObj(v)) return out;
+  for (const k of Object.keys(v).slice(0, 200)) {
+    const x = v[k];
+    if (isObj(x) && typeof x.done === 'boolean') out[k] = { done: x.done, u: typeof x.u === 'number' && Number.isFinite(x.u) ? x.u : 0 };
+  }
+  return out;
 }
 
 /** Defensive normaliser: never trust stored or incoming data. */
@@ -54,17 +72,25 @@ export function sanitize(input: unknown): ProgressData {
     theme: input.theme === 'dark' ? 'dark' : 'light',
     track: input.track === 'new' || input.track === 'some' || input.track === 'pro' ? input.track : null,
     profile: sanitizeProfile(input.profile),
+    sf: sanitizeSf(input.sf),
     lessonsViewed: rec(input.lessonsViewed),
     lessonsManual: rec(input.lessonsManual),
     quiz: rec(input.quiz) as ProgressData['quiz'],
     exercises: rec(input.exercises) as ProgressData['exercises'],
     assignments: rec(input.assignments) as ProgressData['assignments'],
     final: isObj(input.final) ? (input.final as unknown as FinalState) : null,
+    sfFinal: isObj(input.sfFinal) ? (input.sfFinal as unknown as FinalState) : null,
     finalPractical: rec(input.finalPractical) as ProgressData['finalPractical'],
     finalPracticalAt: rec(input.finalPracticalAt) as ProgressData['finalPracticalAt'],
     days: Array.isArray(input.days) ? input.days.filter((d): d is string => typeof d === 'string').slice(-800) : [],
     history: Array.isArray(input.history) ? (input.history.filter((h) => isObj(h) && typeof h.t === 'number' && typeof h.text === 'string').slice(0, 150) as ProgressData['history']) : [],
   };
+}
+
+function mergeFinal(a: FinalState | null, b: FinalState | null): FinalState | null {
+  if (!a || !b) return a ?? b;
+  const better = a.passed !== b.passed ? (a.passed ? a : b) : a.score / a.total >= b.score / b.total ? a : b;
+  return { ...better, passed: a.passed || b.passed, attempts: Math.max(a.attempts, b.attempts) };
 }
 
 /** Merge two progress records without losing anything either side has earned. */
@@ -73,6 +99,10 @@ export function mergeProgress(a: ProgressData, b: ProgressData): ProgressData {
   out.track = a.track ?? b.track;
   // The most recently saved answers win, so changing them on one device carries to the others.
   out.profile = a.profile.done && (!b.profile.done || a.profile.at >= b.profile.at) ? a.profile : b.profile;
+  for (const k of new Set([...Object.keys(a.sf ?? {}), ...Object.keys(b.sf ?? {})])) {
+    const x = a.sf?.[k], y = b.sf?.[k];
+    out.sf[k] = !x ? y! : !y ? x : x.u >= y.u ? x : y; // newest change wins, so unticking sticks
+  }
   for (const k of new Set([...Object.keys(a.lessonsViewed), ...Object.keys(b.lessonsViewed)]))
     out.lessonsViewed[k] = Math.min(a.lessonsViewed[k] ?? Infinity, b.lessonsViewed[k] ?? Infinity);
   for (const k of new Set([...Object.keys(a.lessonsManual), ...Object.keys(b.lessonsManual)]))
@@ -103,11 +133,8 @@ export function mergeProgress(a: ProgressData, b: ProgressData): ProgressData {
     };
     if (out.assignments[k].at === Infinity) out.assignments[k].at = undefined;
   }
-  if (a.final && b.final) {
-    const better = a.final.passed !== b.final.passed ? (a.final.passed ? a.final : b.final)
-      : a.final.score / a.final.total >= b.final.score / b.final.total ? a.final : b.final;
-    out.final = { ...better, passed: a.final.passed || b.final.passed, attempts: Math.max(a.final.attempts, b.final.attempts) };
-  } else out.final = a.final ?? b.final;
+  out.final = mergeFinal(a.final, b.final);
+  out.sfFinal = mergeFinal(a.sfFinal ?? null, b.sfFinal ?? null);
   for (const k of new Set([...Object.keys(a.finalPractical), ...Object.keys(b.finalPractical)])) {
     const xa = a.finalPracticalAt?.[k] ?? 0, ya = b.finalPracticalAt?.[k] ?? 0;
     if (xa || ya) { out.finalPractical[k] = (xa >= ya ? a.finalPractical[k] : b.finalPractical[k]) ?? []; out.finalPracticalAt[k] = Math.max(xa, ya); }

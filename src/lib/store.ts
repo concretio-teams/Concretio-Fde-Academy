@@ -2,8 +2,8 @@ import { useSyncExternalStore } from 'react';
 
 const KEY = 'cca-progress-v1';
 
-import { emptyProgress, sanitize, type AssignmentState, type FinalState, type Goal, type ProgressData, type QuizResult, type TimeBudget, type Track } from '../../shared/progress';
-export type { AssignmentState, FinalState, Goal, QuizResult, TimeBudget, Track };
+import { emptyProgress, sanitize, type AssignmentState, type FinalState, type Goal, type ProgressData, type SfLevel, type QuizResult, type TimeBudget, type Track } from '../../shared/progress';
+export type { AssignmentState, FinalState, Goal, QuizResult, SfLevel, TimeBudget, Track };
 export type Progress = ProgressData;
 
 const prefersDark = typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches;
@@ -51,7 +51,16 @@ export const actions = {
   setTheme(theme: 'light' | 'dark') { commit({ ...state, theme }); },
   setTrack(track: Track | null) { commit({ ...state, track }); },
   /** Save the answers from the first sign-in questions. Pass nulls to skip. */
-  setProfile(goal: Goal | null, time: TimeBudget | null) { commit({ ...state, profile: { goal, time, done: true, at: Date.now() } }); },
+  setProfile(goal: Goal | null, time: TimeBudget | null, sf?: SfLevel | null) { commit({ ...state, profile: { goal, time, done: true, at: Date.now(), sf: sf === undefined ? state.profile.sf : sf, all: state.profile.all } }); },
+  /** Show everything (hidden modules, or the Salesforce program) instead of only the learner's own path. */
+  setShowAll(all: boolean) { commit({ ...state, profile: { ...state.profile, all, at: Date.now() } }); },
+  /** Pick (or clear) the level on the Salesforce FDE program. Only shapes what we show; nothing is locked. */
+  setSfLevel(sf: SfLevel | null) { commit({ ...state, profile: { ...state.profile, sf, at: Date.now() } }); },
+  /** Tick or untick one item of the Salesforce FDE program. */
+  toggleSf(id: string, title: string) {
+    const done = !state.sf[id]?.done;
+    commit({ ...state, sf: { ...state.sf, [id]: { done, u: Date.now() } } }, done ? `Completed on the Salesforce path: ${title}` : undefined);
+  },
   viewLesson(id: string, title: string) {
     const first = !state.lessonsViewed[id];
     commit({ ...state, lessonsViewed: { ...state.lessonsViewed, [id]: Date.now() } }, first ? `Started lesson: ${title}` : undefined);
@@ -107,6 +116,13 @@ export const actions = {
       },
       `Final assessment theory: ${score}/${total} (${pct}%)`,
     );
+  },
+  /** Result of the Salesforce exam. Same rules as the theory exam: the best score and a pass are never lost. */
+  saveSfFinal(score: number, total: number, passMark: number) {
+    const pct = total ? Math.round((score / total) * 100) : 0;
+    const prev = state.sfFinal;
+    const passed = pct >= passMark || (prev?.passed ?? false);
+    commit({ ...state, sfFinal: { score, total, passed, at: Date.now(), attempts: (prev?.attempts ?? 0) + 1 } }, `Salesforce exam: ${score}/${total} (${pct}%)`);
   },
   /** Replace everything (used after sign-in merge and on sign-out). Silent: does not trigger a cloud save. */
   replaceProgress(next: Progress, silent = true) { commit({ ...next, theme: state.theme }, undefined, silent); },
