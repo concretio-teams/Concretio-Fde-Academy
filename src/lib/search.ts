@@ -26,6 +26,7 @@ export const PAGES: [string, string, string][] = [
   ['', 'Dashboard', 'Progress, next step and achievements'],
   ['journey', 'Journey', 'Your step by step tree: done, next and still to do'],
   ['setup', 'My plan and answers', 'Change your level, goal and weekly time'],
+  ['salesforce', 'Salesforce FDE program', 'Levels, courses, superbadges and exams for the Salesforce FDE path'],
   ['tiers', 'Career tiers', 'The four FDE tiers: outcome, hours, gates and what the academy covers (draft)'],
   ['path', 'Learning path', 'All modules and their order'],
   ['playground', 'Playground', 'Hands-on exercises'],

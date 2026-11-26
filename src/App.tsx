@@ -13,6 +13,7 @@ import { AuthScreen } from './pages/AuthScreen';
 import { Onboarding } from './pages/Onboarding';
 import { SetupPage } from './pages/Setup';
 import { TiersPage } from './pages/Tiers';
+import { SalesforcePage } from './pages/Salesforce';
 import { LoginPage } from './pages/Login';
 import { Dashboard, ProgressPage } from './pages/Overview';
 import { GlossaryPage, StartPage } from './pages/Start';
@@ -88,6 +89,7 @@ export function App() {
   else if (a === 'path') page = <PathPage />;
   else if (a === 'journey') page = <JourneyPage />;
   else if (a === 'tiers') page = <TiersPage tier={b} />;
+  else if (a === 'salesforce') page = <SalesforcePage />;
   else if (a === 'setup') page = <SetupPage />;
   else if (a === 'lesson' && b) page = <LessonPage key={b} id={b} scrollToQuiz={c === 'quiz'} />;
   else if (a === 'playground') page = <PlaygroundPage id={b} />;

@@ -285,7 +285,7 @@ export function TreeOverlay() {
           <p className="small" style={{ margin: '0 0 8px', textAlign: 'center' }}>Your experience gives you a <b>head start</b>: the lighter {headNames.join(' and ').toLowerCase()}. Pass those lessons' quizzes to make them solid.</p>
         )}
         {m === 'intro' && (
-          <p className="muted" style={{ margin: '4px 0 12px' }}>You start as a seed. Finishing lessons, quizzes and assignments grows the roots, then the trunk, the branches, the leaves and the fruit, until the tree is full grown. It lives in the sidebar, so you can come back to it any time.</p>
+          <p className="muted" style={{ margin: '4px 0 12px' }}>You start as a seed. Finishing lessons, quizzes and assignments{p.profile.sf ? ', and the Salesforce courses on your path,' : ''} grows the roots, then the trunk, the branches, the leaves and the fruit, until the tree is full grown. It lives in the sidebar, so you can come back to it any time.</p>
         )}
 
         {m === 'view' && <ul className="treelegend">
@@ -294,7 +294,7 @@ export function TreeOverlay() {
             const pct = Math.round(parts[i] * 100);
             return (
               <li key={name} onMouseEnter={() => setHot(i + 1)} onMouseLeave={() => setHot(null)} onFocus={() => setHot(i + 1)} onBlur={() => setHot(null)} tabIndex={0}>
-                <span className="tlname"><b>{name}</b><small>Module {i + 1}{mod ? `: ${mod.title}` : ''}</small>{head[i] && <small className="tlhs">Head start from your level</small>}</span>
+                <span className="tlname"><b>{name}</b><small>{p.profile.sf ? `${Math.round((i / 9) * 100)} to ${Math.round(((i + 1) / 9) * 100)}% of your path` : <>Module {i + 1}{mod ? `: ${mod.title}` : ''}</>}</small>{head[i] && <small className="tlhs">Head start from your level</small>}</span>
                 <span className="tlpct">{pct}%</span>
               </li>
             );

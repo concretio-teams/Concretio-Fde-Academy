@@ -1,6 +1,7 @@
 import { lessonById, resourcesForLesson } from '../content';
 import type { Resource } from '../content/types';
 import { href } from '../lib/router';
+import { useProgress } from '../lib/store';
 import { Badge } from '../ui';
 
 export function ResourceItem({ r, first, showLessons }: { r: Resource; first?: boolean; showLessons?: boolean }) {
@@ -29,7 +30,8 @@ export function ResourceItem({ r, first, showLessons }: { r: Resource; first?: b
 
 /** Optional extras for one lesson: things to watch or do first, then things to read. Links open in a new tab. */
 export function GoDeeper({ lessonId }: { lessonId: string }) {
-  const list = resourcesForLesson(lessonId);
+  const p = useProgress();
+  const list = resourcesForLesson(lessonId).filter((r) => r.audience !== 'salesforce' || p.profile.sf || p.profile.all);
   if (list.length === 0) return null;
   const watch = list.filter((r) => r.type === 'Video' || r.type === 'Course');
   const read = list.filter((r) => r.type === 'Docs' || r.type === 'Guide');

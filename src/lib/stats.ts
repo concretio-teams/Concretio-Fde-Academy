@@ -2,6 +2,8 @@ import { allLessons, allAssignments, allExercises, modules } from '../content';
 import type { Assignment } from '../content/types';
 import type { Lesson, Module } from '../content/types';
 import type { Progress } from './store';
+import { SF_PATH, requiredSfItems, sfItemMap, sfWeight } from './sfPath';
+import type { SfKind } from './sfProgram';
 import { GOALS, TRACKS } from './tracks';
 
 export const LESSON_PASS_PCT = 70;
@@ -64,6 +66,19 @@ export function overall(p: Progress) {
   const total = allLessons.length + allExercises.length + allAssignments.length + 1;
   const earned = lessons + exercises + finalDone + allAssignments.reduce((a, x) => a + assignmentCredit(p, x.assignment), 0);
   const complete = lessons === allLessons.length && exercises === allExercises.length && assigns === allAssignments.length && finalDone === 1;
+  if (p.profile.sf) {
+    // On the Salesforce program the tree and the percentage grow with the whole path, weighted by learning time:
+    // the academy counts as its own total minutes, each Salesforce item by its published minutes.
+    const tm = totalMinutes();
+    const acMin = tm.lessons + tm.assignments;
+    const sfReq = requiredSfItems();
+    const sfDone = sfReq.filter((i) => p.sf[i.id]?.done);
+    const sfTotalW = sfReq.reduce((a, i) => a + sfWeight(i), 0);
+    const sfEarnedW = sfDone.reduce((a, i) => a + sfWeight(i), 0);
+    const w = acMin + sfTotalW;
+    const e = (earned / total) * acMin + sfEarnedW;
+    return { lessons, assigns, exercises, finalDone, total: total + sfReq.length, done: Math.floor(earned) + sfDone.length, pct: pctOf(e, w, complete && sfDone.length === sfReq.length) };
+  }
   return { lessons, assigns, exercises, finalDone, total, done: Math.floor(earned), pct: pctOf(earned, total, complete) };
 }
 
@@ -83,6 +98,7 @@ export function skillLevels(p: Progress): { skill: string; pct: number; level: s
 
 /** Module number a learner starts from, based on the level they picked on the Start page. */
 export function startNumber(p: Progress): number {
+  if (p.profile.sf) return 0; // the Salesforce path includes every Claude module from the first
   const t = TRACKS.find((x) => x.id === p.track);
   return modules.find((m) => m.id === t?.startModule)?.number ?? 0;
 }
@@ -131,7 +147,24 @@ function nextIn(p: Progress, from: number, to: number): NextBase | null {
   return null;
 }
 
+const SF_VERB: Record<SfKind, string> = { Trail: 'Trailhead', Superbadge: 'Superbadge', Course: 'Course', 'Exam prep': 'Prepare', Workshop: 'Workshop', Exam: 'Exam' };
+
+/** Next step on the Salesforce FDE path: academy modules and Salesforce items in one order. */
+function sfNext(p: Progress): NextBase | null {
+  if (!p.profile.sf) return null;
+  const from = startNumber(p);
+  const items = sfItemMap();
+  for (const st of SF_PATH) {
+    if (st.t === 'h') continue;
+    if (st.t === 'm') { const n = nextIn(p, Math.max(st.n, from), st.n); if (n) return n; continue; }
+    const it = st.ids.map((id) => items.get(id)).find((i) => i && !p.sf[i.id]?.done);
+    if (it) return { step: 'Learn', label: `${SF_VERB[it.kind]}: ${it.title}`, why: `${it.provider}. Open it from the Salesforce page and tick it there when you finish.`, href: '#/salesforce' };
+  }
+  return null;
+}
+
 function baseNext(p: Progress): NextBase {
+  if (p.profile.done) { const sfStep = sfNext(p); if (sfStep) return sfStep; }
   const from = startNumber(p);
   const goal = p.profile.done ? GOALS.find((g) => g.id === p.profile.goal) : undefined;
   // With a plan, finish it first; then carry on with whatever lies beyond it.
