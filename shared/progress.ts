@@ -93,6 +93,21 @@ function mergeFinal(a: FinalState | null, b: FinalState | null): FinalState | nu
   return { ...better, passed: a.passed || b.passed, attempts: Math.max(a.attempts, b.attempts) };
 }
 
+/**
+ * Is the progress saved in this browser left over from a different account?
+ * If so it must not be merged into the account that just signed in, or the new account inherits old answers
+ * (for example a finished setup, so the onboarding questions are skipped).
+ * - The browser remembers which account its progress belongs to ("owner"). A different account means foreign.
+ * - Browsers from before that tag existed have no owner. A guest can never finish the setup (it needs an account),
+ *   so a finished setup there came from an account. It is foreign when the signed-in account has not finished its
+ *   own setup, which is the case for an account that was just created.
+ * Guest progress, with no owner and no finished setup, is still carried into the first account the guest creates.
+ */
+export function isForeignLocal(owner: string | null, userId: string, local: ProgressData, remote: ProgressData): boolean {
+  if (owner) return owner !== userId;
+  return local.profile.done && !remote.profile.done;
+}
+
 /** Merge two progress records without losing anything either side has earned. */
 export function mergeProgress(a: ProgressData, b: ProgressData): ProgressData {
   const out = emptyProgress(a.theme);
