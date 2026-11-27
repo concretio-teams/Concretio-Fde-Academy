@@ -24,7 +24,7 @@ function Row({ i, done, next }: { i: SfItem; done: boolean; next?: boolean }) {
         <small>
           {i.kind}, {i.provider}
           {i.minutes ? `, ${i.est ? '~' : ''}${fmtHours(i.minutes)}${i.est ? ' (est)' : ''}` : i.kind === 'Exam' ? ', exam time not counted' : ', hours not checked'}
-          {i.login && ', needs a login'}
+          {i.partner ? ', needs a Partner Learning Camp account, ask Harting' : i.login && ', needs a login'}
           {m && <>{'. Practice it in '}<a href={href('lesson', m.lessons[0].id)}>Module {m.number}</a></>}
           {i.note && <>. {i.note}</>}
         </small>
@@ -52,7 +52,11 @@ export function SalesforcePage() {
       </PageHead>
 
       <div className="card" style={{ marginBottom: 14 }}>
-        <b>How this works.</b> <span className="muted">Tick an item when you finish it. Nothing here is locked or graded by the academy: superbadges and exams are the proof. Items marked "needs a login" open once you are signed in to Trailhead or the partner site.</span>
+        <b>How this works.</b> <span className="muted">Tick an item when you finish it. Nothing here is locked or graded by the academy: superbadges and exams are the proof. Items marked "needs a login" open once you are signed in to Trailhead.</span>
+      </div>
+
+      <div className="card" style={{ marginBottom: 14 }}>
+        <b>Partner Learning Camp access.</b> <span className="muted">The Agentforce and Data 360 Implementation Ready courses need a Partner Learning Camp account. If you do not have access yet, reach out to Harting to be invited. Sign up with your own developer org only: do not use a client, demo or shared dev org, and make sure your developer org is active and does not expire.</span>
       </div>
 
       <Card>
