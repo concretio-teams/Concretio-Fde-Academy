@@ -24,12 +24,13 @@ function Row({ i, done, next }: { i: SfItem; done: boolean; next?: boolean }) {
         <small>
           {i.kind}, {i.provider}
           {i.minutes ? `, ${i.est ? '~' : ''}${fmtHours(i.minutes)}${i.est ? ' (est)' : ''}` : i.kind === 'Exam' ? ', exam time not counted' : ', hours not checked'}
-          {i.partner ? ', needs a Partner Learning Camp account, ask Harting' : i.login && ', needs a login'}
+          {!i.partner && i.login && ', needs a login'}
           {m && <>{'. Practice it in '}<a href={href('lesson', m.lessons[0].id)}>Module {m.number}</a></>}
           {i.note && <>. {i.note}</>}
         </small>
       </div>
       {next && <Badge tone="ok">Next</Badge>}
+      {i.partner && <Badge tone="warn">Partner Learning Camp account needed, ask Harting</Badge>}
       {i.status !== 'Required' && <Badge tone={i.status === 'Optional' ? undefined : 'warn'}>{i.status}</Badge>}
     </div>
   );
