@@ -105,7 +105,7 @@ export function JourneyPage() {
                 <div key={i} className="jkids" style={{ marginLeft: 0 }}>
                   {st.ids.map((id) => { const it = items!.get(id); if (!it) return null; return (
                     <Node key={id} state={stateOf(!!p.sf[id]?.done, nx.href.startsWith('#/salesforce') && nextSf?.id === id)} to={href('salesforce')} title={it.title}
-                      meta={`Salesforce path, ${it.kind.toLowerCase()}, ${it.provider}${it.minutes ? `, about ${Math.round((it.minutes / 60) * 10) / 10} h` : ''}`} />
+                      meta={`Salesforce path, ${it.kind.toLowerCase()}, ${it.provider}${it.minutes ? `, about ${Math.round((it.minutes / 60) * 10) / 10} h` : ''}${it.partner ? ', needs a Partner Learning Camp account, ask Harting' : ''}`} />
                   ); })}
                 </div>
               );
